@@ -6,8 +6,10 @@ interface MarketState {
   chartData: ChartData | null;
   loading: boolean;
   error: string | null;
-  currency: Currency;
-  setCurrency: (c: Currency) => void;
+  homeCurrency: Currency;
+  displayCurrency: Currency;
+  setDisplayCurrency: (c: Currency) => void;
+  setHomeCurrency: (c: Currency) => void;
   fetchOverview: () => Promise<void>;
   fetchChart: () => Promise<void>;
 }
@@ -17,9 +19,12 @@ export const useMarketStore = create<MarketState>((set) => ({
   chartData: null,
   loading: false,
   error: null,
-  currency: "USD",
+  homeCurrency: "USD",
+  displayCurrency: "USD",
 
-  setCurrency: (currency) => set({ currency }),
+  setDisplayCurrency: (displayCurrency) => set({ displayCurrency }),
+  setHomeCurrency: (homeCurrency) =>
+    set({ homeCurrency, displayCurrency: homeCurrency }),
 
   fetchOverview: async () => {
     set({ loading: true, error: null });
@@ -27,7 +32,14 @@ export const useMarketStore = create<MarketState>((set) => ({
       const res = await fetch("/api/market/overview");
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data = await res.json();
-      set({ overview: data, loading: false });
+      const hc = data.homeCurrency ?? "USD";
+      set((state) => ({
+        overview: data,
+        homeCurrency: hc,
+        // Only set displayCurrency to homeCurrency on first load
+        displayCurrency: state.overview === null ? hc : state.displayCurrency,
+        loading: false,
+      }));
     } catch (err) {
       set({ error: String(err), loading: false });
     }

@@ -3,7 +3,7 @@ import {
   getBtcPriceHistory,
   getBtcCurrent,
   getFearGreedIndex,
-  getExchangeRate,
+  getExchangeRates,
 } from "../coingecko.js";
 import {
   toWeekly,
@@ -12,24 +12,29 @@ import {
   mayerMultiple,
   generateSignals,
 } from "../indicators.js";
+import { loadPortfolio } from "./portfolio.js";
 
 const router = Router();
 
 // GET /api/market/overview — current price, signals, fear & greed
 router.get("/overview", async (_req, res) => {
   try {
-    const [dailyPrices, current, fearGreed, exchangeRate] = await Promise.all([
+    const portfolio = await loadPortfolio();
+    const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
+
+    const [dailyPrices, current, fearGreed, exchangeRates] = await Promise.all([
       getBtcPriceHistory(),
-      getBtcCurrent(),
+      getBtcCurrent(homeCurrency),
       getFearGreedIndex(),
-      getExchangeRate(),
+      getExchangeRates(homeCurrency),
     ]);
 
     const weeklyPrices = toWeekly(dailyPrices);
+    // Signal generation uses USD prices (indicators are ratio-based)
     const { signals, overall } = generateSignals(
       dailyPrices,
       weeklyPrices,
-      current.price,
+      current.priceUsd,
       current.ath,
     );
 
@@ -39,7 +44,8 @@ router.get("/overview", async (_req, res) => {
       fearGreedHistory: fearGreed,
       signals,
       overall,
-      exchangeRate,
+      exchangeRates,
+      homeCurrency,
     });
   } catch (err) {
     console.error("Overview error:", err);

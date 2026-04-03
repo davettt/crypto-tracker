@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.1.0] - 2026-04-04
+
+### Added
+
+- Home currency setting — set once, all transactions and investment pool stored in your local currency with no exchange rate drift
+- 8 supported currencies: USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD
+- Display currency toggle in header — browse BTC prices and charts in any currency without affecting stored data
+- CSV export of transaction history (ISO date format) for tax records
+- Export available from Recent Transactions, View All modal, and currency reset flow
+- Currency reset flow with type-DELETE confirmation to prevent accidental data loss
+- Transaction history modal — shows 3 most recent inline, "View all" opens scrollable modal
+- Auto-migration of existing portfolio data from USD-based to home currency storage
+
+### Changed
+
+- Layout restructured — Position Calculator and Portfolio moved to full-width row below charts, reducing sidebar scroll
+- Transaction history now shows exact local currency amounts (no USD round-trip conversion)
+- Fees displayed with 2 decimal places throughout
+- Transaction form preview amounts shown with 2 decimal places
+- Transaction rows lead with currency amount, BTC details secondary
+
 ## [1.0.0] - 2026-04-03
 
 ### Added

@@ -9,7 +9,10 @@ BTC market tracker with buy/sell signals for long-term holders. Analyses technic
 - Buy/sell signals: Weekly RSI, 200-Day MA, Mayer Multiple, ATH Drawdown, Fear & Greed
 - Position calculator with DCA and Lump Sum modes
 - Portfolio tracker with transaction history and P&L
-- USD/AUD currency toggle
+- Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
+- Display currency toggle to view market data in any supported currency
+- Transaction amounts stored in home currency — no exchange rate drift
+- CSV export for tax records
 - Persistent price history (accumulates over time for future 200-week MA)
 
 ## Setup

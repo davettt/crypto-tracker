@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useMarketStore } from "./stores/marketStore";
-import type { Transaction } from "./types";
+import type { Transaction, PortfolioSettings } from "./types";
+import { CURRENCIES, CURRENCY_SYMBOLS } from "./types";
 import PriceHeader from "./components/PriceHeader";
 import SignalPanel from "./components/SignalPanel";
 import PriceChart from "./components/PriceChart";
@@ -8,10 +9,14 @@ import RsiChart from "./components/RsiChart";
 import PositionCalculator from "./components/PositionCalculator";
 import PortfolioTracker from "./components/PortfolioTracker";
 
-async function fetchTransactions(): Promise<Transaction[]> {
+interface PortfolioData {
+  settings: PortfolioSettings;
+  transactions: Transaction[];
+}
+
+async function fetchPortfolio(): Promise<PortfolioData> {
   const res = await fetch("/api/portfolio");
-  const data = await res.json();
-  return data.transactions ?? [];
+  return res.json();
 }
 
 export default function App() {
@@ -20,17 +25,23 @@ export default function App() {
     chartData,
     loading,
     error,
-    currency,
-    setCurrency,
+    homeCurrency,
+    displayCurrency,
+    setDisplayCurrency,
+    setHomeCurrency,
     fetchOverview,
     fetchChart,
   } = useMarketStore();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const didInit = useRef(false);
 
-  const reloadTransactions = useCallback(() => {
-    void fetchTransactions().then(setTransactions);
+  const reloadPortfolio = useCallback(() => {
+    void fetchPortfolio().then((data) => {
+      setTransactions(data.transactions ?? []);
+      setSettings(data.settings);
+    });
   }, []);
 
   useEffect(() => {
@@ -38,8 +49,24 @@ export default function App() {
     didInit.current = true;
     void fetchOverview();
     void fetchChart();
-    void fetchTransactions().then(setTransactions);
+    void fetchPortfolio().then((data) => {
+      setTransactions(data.transactions ?? []);
+      setSettings(data.settings);
+    });
   }, [fetchOverview, fetchChart]);
+
+  async function changeHomeCurrency(newCurrency: string) {
+    await fetch("/api/portfolio/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ homeCurrency: newCurrency }),
+    });
+    setHomeCurrency(newCurrency as Parameters<typeof setHomeCurrency>[0]);
+    reloadPortfolio();
+    void fetchOverview();
+  }
+
+  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,19 +77,25 @@ export default function App() {
               BTC Market Tracker
             </h1>
             <div className="flex items-center gap-3">
-              <div className="flex rounded-lg border border-gray-200 text-sm">
-                <button
-                  onClick={() => setCurrency("USD")}
-                  className={`px-3 py-1.5 ${currency === "USD" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"} rounded-l-lg transition-colors`}
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-gray-400">View in</label>
+                <select
+                  value={displayCurrency}
+                  onChange={(e) =>
+                    setDisplayCurrency(
+                      e.target.value as Parameters<
+                        typeof setDisplayCurrency
+                      >[0],
+                    )
+                  }
+                  className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-gray-700 outline-none focus:border-blue-400"
                 >
-                  USD
-                </button>
-                <button
-                  onClick={() => setCurrency("AUD")}
-                  className={`px-3 py-1.5 ${currency === "AUD" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"} rounded-r-lg transition-colors`}
-                >
-                  AUD
-                </button>
+                  {CURRENCIES.map((code) => (
+                    <option key={code} value={code}>
+                      {CURRENCY_SYMBOLS[code]} {code}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 onClick={() => {
@@ -96,8 +129,9 @@ export default function App() {
           <div className="space-y-6">
             <PriceHeader
               data={overview.current}
-              exchangeRate={overview.exchangeRate}
-              currency={currency}
+              displayCurrency={displayCurrency}
+              homeCurrency={homeCurrency}
+              exchangeRates={overview.exchangeRates}
             />
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -106,8 +140,8 @@ export default function App() {
                   <>
                     <PriceChart
                       data={chartData}
-                      currency={currency}
-                      exchangeRate={overview.exchangeRate}
+                      displayCurrency={displayCurrency}
+                      exchangeRates={overview.exchangeRates}
                     />
                     <RsiChart data={chartData} />
                   </>
@@ -119,25 +153,33 @@ export default function App() {
                   overall={overview.overall}
                   fearGreed={overview.fearGreed}
                 />
-                <PositionCalculator
-                  overall={overview.overall}
-                  signals={overview.signals}
-                  currentPrice={overview.current.price}
-                  currency={currency}
-                  exchangeRate={overview.exchangeRate}
-                  transactions={transactions}
-                  onSettingsChange={() => void reloadTransactions()}
-                />
-                <PortfolioTracker
-                  currentPrice={overview.current.price}
-                  currency={currency}
-                  exchangeRate={overview.exchangeRate}
-                  overall={overview.overall}
-                  signals={overview.signals}
-                  transactions={transactions}
-                  onTransactionsChange={() => void reloadTransactions()}
-                />
               </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <PositionCalculator
+                overall={overview.overall}
+                signals={overview.signals}
+                currentPrice={overview.current.price}
+                homeCurrency={homeCurrency}
+                symbol={homeSymbol}
+                transactions={transactions}
+                settings={settings}
+                onSettingsChange={() => {
+                  reloadPortfolio();
+                  void fetchOverview();
+                }}
+                onHomeCurrencyChange={changeHomeCurrency}
+              />
+              <PortfolioTracker
+                currentPrice={overview.current.price}
+                homeCurrency={homeCurrency}
+                symbol={homeSymbol}
+                overall={overview.overall}
+                signals={overview.signals}
+                transactions={transactions}
+                onTransactionsChange={reloadPortfolio}
+              />
             </div>
           </div>
         )}

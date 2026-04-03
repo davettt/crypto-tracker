@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import type {
   Signal,
   Overall,
   Currency,
-  ExchangeRate,
   Transaction,
   PortfolioSettings,
 } from "../types";
+import { CURRENCIES, CURRENCY_SYMBOLS } from "../types";
 
 type Mode = "dca" | "lump";
 
@@ -52,68 +52,94 @@ export default function PositionCalculator({
   overall,
   signals,
   currentPrice,
-  currency,
-  exchangeRate,
+  homeCurrency,
+  symbol,
   transactions,
+  settings,
   onSettingsChange,
+  onHomeCurrencyChange,
 }: {
   overall: Overall;
   signals: Signal[];
   currentPrice: number;
-  currency: Currency;
-  exchangeRate: ExchangeRate;
+  homeCurrency: Currency;
+  symbol: string;
   transactions: Transaction[];
+  settings: PortfolioSettings | null;
   onSettingsChange: () => void;
+  onHomeCurrencyChange: (c: string) => void;
 }) {
-  const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const [editingCapital, setEditingCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("");
   const [holdingsBtc, setHoldingsBtc] = useState("");
-
-  const rate = currency === "AUD" ? exchangeRate.usdToAud : 1;
-  const symbol = currency === "AUD" ? "A$" : "$";
-  const priceInCurrency = currentPrice * rate;
-
-  const didInit = useRef(false);
-
-  useEffect(() => {
-    if (didInit.current) return;
-    didInit.current = true;
-    void fetch("/api/portfolio")
-      .then((res) => res.json())
-      .then((data) => {
-        setSettings(data.settings ?? { initialCapitalUsd: 0, mode: "dca" });
-      });
-  }, []);
+  const [showCurrencyReset, setShowCurrencyReset] = useState(false);
+  const [pendingCurrency, setPendingCurrency] = useState("");
+  const [confirmText, setConfirmText] = useState("");
 
   async function saveSettings(updates: Partial<PortfolioSettings>) {
-    const res = await fetch("/api/portfolio/settings", {
+    await fetch("/api/portfolio/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
-    const saved = await res.json();
-    setSettings((prev) => (prev ? { ...prev, ...saved } : saved));
     onSettingsChange();
   }
 
   if (!settings) return null;
 
   const mode = settings.mode;
-  const initialCapitalUsd = settings.initialCapitalUsd;
-  const initialCapital = initialCapitalUsd * rate;
+  const initialCapital = settings.initialCapital;
+  const needsConfirmation =
+    settings.needsCapitalConfirmation && initialCapital > 0;
 
-  // Compute remaining cash: initial - buys + sells (all in USD then convert)
-  const totalBoughtUsd = transactions
+  // Show confirmation prompt if migrated from USD storage
+  if (needsConfirmation && !editingCapital) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          Position Calculator
+        </h3>
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-800">
+            Confirm investment pool
+          </p>
+          <p className="mt-1 text-xs text-amber-600">
+            Your investment pool was previously stored in USD. Please confirm
+            the amount in {homeCurrency}.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <input
+              type="number"
+              value={capitalInput}
+              onChange={(e) => setCapitalInput(e.target.value)}
+              placeholder={`Amount in ${homeCurrency}`}
+              className="flex-1 rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
+            />
+            <button
+              onClick={() => {
+                const val = parseFloat(capitalInput) || 0;
+                void saveSettings({ initialCapital: val });
+              }}
+              className="rounded bg-gray-900 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Compute remaining cash using amountLocal (home currency canonical)
+  const totalBought = transactions
     .filter((t) => t.type === "buy")
-    .reduce((s, t) => s + t.amountUsd, 0);
-  const totalSoldUsd = transactions
+    .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
+  const totalSold = transactions
     .filter((t) => t.type === "sell")
-    .reduce((s, t) => s + t.amountUsd, 0);
-  const remainingCashUsd = initialCapitalUsd - totalBoughtUsd + totalSoldUsd;
-  const remainingCash = remainingCashUsd * rate;
+    .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
+  const remainingCash = initialCapital - totalBought + totalSold;
 
-  // BTC holdings value
+  // BTC holdings value in home currency
   const totalBoughtBtc = transactions
     .filter((t) => t.type === "buy")
     .reduce((s, t) => s + t.amountBtc, 0);
@@ -121,8 +147,7 @@ export default function PositionCalculator({
     .filter((t) => t.type === "sell")
     .reduce((s, t) => s + t.amountBtc, 0);
   const btcHoldings = totalBoughtBtc - totalSoldBtc;
-  const btcValueUsd = btcHoldings * currentPrice;
-  const btcValue = btcValueUsd * rate;
+  const btcValue = btcHoldings * currentPrice;
 
   // Total value = remaining cash + BTC value
   const totalValue = remainingCash + btcValue;
@@ -148,9 +173,132 @@ export default function PositionCalculator({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-        Position Calculator
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          Position Calculator
+        </h3>
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-gray-400">Home</label>
+          {transactions.length > 0 ? (
+            <span className="rounded border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-xs text-gray-500">
+              {CURRENCY_SYMBOLS[homeCurrency]} {homeCurrency}
+            </span>
+          ) : (
+            <select
+              value={homeCurrency}
+              onChange={(e) => void onHomeCurrencyChange(e.target.value)}
+              className="rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600 outline-none focus:border-blue-400"
+            >
+              {CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {CURRENCY_SYMBOLS[code]} {code}
+                </option>
+              ))}
+            </select>
+          )}
+          {transactions.length > 0 && (
+            <button
+              onClick={() => {
+                setPendingCurrency("");
+                setConfirmText("");
+                setShowCurrencyReset(true);
+              }}
+              className="text-xs text-gray-400 hover:text-gray-600"
+              title="Change home currency"
+            >
+              Change
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showCurrencyReset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCurrencyReset(false);
+          }}
+        >
+          <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-sm font-bold text-red-700">
+              Change Home Currency
+            </h3>
+            <p className="mt-2 text-xs text-gray-600">
+              Changing your home currency requires deleting all transactions and
+              resetting your investment pool. This cannot be undone.
+            </p>
+            <p className="mt-2 text-xs text-gray-600">
+              Export your transactions to CSV first if you need them for tax
+              records.
+            </p>
+
+            <a
+              href="/api/portfolio/export"
+              download
+              className="mt-3 inline-block rounded bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
+            >
+              Export CSV before reset
+            </a>
+
+            <div className="mt-4">
+              <label className="block text-xs text-gray-500">
+                New home currency
+              </label>
+              <select
+                value={pendingCurrency}
+                onChange={(e) => setPendingCurrency(e.target.value)}
+                className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
+              >
+                <option value="">Select currency...</option>
+                {CURRENCIES.filter((c) => c !== homeCurrency).map((code) => (
+                  <option key={code} value={code}>
+                    {CURRENCY_SYMBOLS[code]} {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500">
+                Type <span className="font-bold">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-red-400"
+              />
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button
+                disabled={confirmText !== "DELETE" || !pendingCurrency}
+                onClick={async () => {
+                  await fetch("/api/portfolio/reset", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ homeCurrency: pendingCurrency }),
+                  });
+                  setShowCurrencyReset(false);
+                  setConfirmText("");
+                  setPendingCurrency("");
+                  onHomeCurrencyChange(pendingCurrency);
+                }}
+                className="flex-1 rounded bg-red-600 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-40"
+              >
+                Reset & Change Currency
+              </button>
+              <button
+                onClick={() => setShowCurrencyReset(false)}
+                className="rounded px-4 py-2 text-sm text-gray-500 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Capital pool setup */}
       <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
@@ -242,8 +390,7 @@ export default function PositionCalculator({
               <button
                 onClick={() => {
                   const val = parseFloat(capitalInput) || 0;
-                  const usdVal = currency === "AUD" ? val / rate : val;
-                  void saveSettings({ initialCapitalUsd: usdVal });
+                  void saveSettings({ initialCapital: val });
                   setEditingCapital(false);
                 }}
                 className="rounded bg-gray-900 px-3 py-1.5 text-sm text-white hover:bg-gray-700"
@@ -301,7 +448,7 @@ export default function PositionCalculator({
           </p>
           {buyAllocs.map((pct, i) => {
             const amount = remainingCash * pct;
-            const btcAmount = amount / priceInCurrency;
+            const btcAmount = amount / currentPrice;
             const buysRemaining = pct > 0 ? Math.floor(1 / pct) : Infinity;
             return (
               <div
@@ -357,12 +504,10 @@ export default function PositionCalculator({
       {!isBuySide && (
         <div className="mt-4 space-y-3">
           {btcHoldings > 0 ? (
-            <>
-              <p className="text-xs text-gray-500">
-                Holdings: {fmt(btcHoldings, 6)} BTC ({symbol}
-                {fmt(btcValue)})
-              </p>
-            </>
+            <p className="text-xs text-gray-500">
+              Holdings: {fmt(btcHoldings, 6)} BTC ({symbol}
+              {fmt(btcValue)})
+            </p>
           ) : (
             <div>
               <label className="block text-xs font-medium text-gray-500">
@@ -386,7 +531,7 @@ export default function PositionCalculator({
               </p>
               {sellAllocs.map((pct, i) => {
                 const btcToSell = holdingsNum * pct;
-                const valueInCurrency = btcToSell * priceInCurrency;
+                const valueInCurrency = btcToSell * currentPrice;
                 return (
                   <div
                     key={i}

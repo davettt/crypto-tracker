@@ -1,11 +1,5 @@
 import { useState } from "react";
-import type {
-  Transaction,
-  Currency,
-  ExchangeRate,
-  Overall,
-  Signal,
-} from "../types";
+import type { Transaction, Currency, Overall, Signal } from "../types";
 
 function fmt(n: number, decimals = 0) {
   return n.toLocaleString("en-US", {
@@ -42,15 +36,15 @@ function buildDefaultNote(overall: Overall, signals: Signal[]) {
 
 function AddTransactionForm({
   currentPrice,
-  currency,
-  exchangeRate,
+  homeCurrency,
+  symbol,
   overall,
   signals,
   onAdd,
 }: {
   currentPrice: number;
-  currency: Currency;
-  exchangeRate: ExchangeRate;
+  homeCurrency: Currency;
+  symbol: string;
   overall: Overall;
   signals: Signal[];
   onAdd: () => void;
@@ -63,15 +57,9 @@ function AddTransactionForm({
   const [notes, setNotes] = useState("");
   const [open, setOpen] = useState(false);
 
-  const rate = currency === "AUD" ? exchangeRate.usdToAud : 1;
-  const symbol = currency === "AUD" ? "A$" : "$";
-  const priceInCurrency = currentPrice * rate;
-
   const amountNum = parseFloat(amount) || 0;
   const feeNum = parseFloat(fee) || 0;
-  const priceNum = parseFloat(price) || priceInCurrency;
-  // For buys: fee reduces the amount that goes to BTC
-  // For sells: fee reduces the cash received
+  const priceNum = parseFloat(price) || currentPrice;
   const effectiveAmount = type === "buy" ? amountNum - feeNum : amountNum;
   const btcAmount = priceNum > 0 ? effectiveAmount / priceNum : 0;
 
@@ -79,21 +67,16 @@ function AddTransactionForm({
     e.preventDefault();
     if (amountNum <= 0) return;
 
-    const priceUsd = currency === "AUD" ? priceNum / rate : priceNum;
-    const feeUsd = currency === "AUD" ? feeNum / rate : feeNum;
-
     await fetch("/api/portfolio/transaction", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type,
-        amountUsd: amountNum / rate,
+        amount: amountNum,
         amountBtc: btcAmount,
-        priceUsd,
-        feeUsd,
-        feeLocal: feeNum,
-        currency,
-        amountLocal: amountNum,
+        price: priceNum,
+        fee: feeNum,
+        currency: homeCurrency,
         date,
         notes,
       }),
@@ -174,7 +157,7 @@ function AddTransactionForm({
           type="number"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder={fmt(priceInCurrency)}
+          placeholder={fmt(currentPrice)}
           step="0.01"
           className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
         />
@@ -185,9 +168,9 @@ function AddTransactionForm({
             <>
               <p>
                 {symbol}
-                {fmt(amountNum)} - {symbol}
-                {fmt(feeNum)} fee = {symbol}
-                {fmt(effectiveAmount)} invested
+                {fmt(amountNum, 2)} - {symbol}
+                {fmt(feeNum, 2)} fee = {symbol}
+                {fmt(effectiveAmount, 2)} invested
               </p>
               <p className="font-medium">
                 = {fmt(btcAmount, 8)} BTC at {symbol}
@@ -202,9 +185,9 @@ function AddTransactionForm({
               </p>
               <p className="font-medium">
                 = {symbol}
-                {fmt(amountNum)} - {symbol}
-                {fmt(feeNum)} fee = {symbol}
-                {fmt(amountNum - feeNum)} received
+                {fmt(amountNum, 2)} - {symbol}
+                {fmt(feeNum, 2)} fee = {symbol}
+                {fmt(amountNum - feeNum, 2)} received
               </p>
             </>
           )}
@@ -248,52 +231,166 @@ function AddTransactionForm({
   );
 }
 
+function TransactionRow({
+  t,
+  symbol,
+  onDelete,
+}: {
+  t: Transaction;
+  symbol: string;
+  onDelete: (id: string) => void;
+}) {
+  const txAmount = t.amount ?? t.amountLocal ?? 0;
+  const txFee = t.fee ?? t.feeLocal ?? t.feeUsd ?? 0;
+  const txPrice =
+    t.price ?? (t.amountLocal && t.amountBtc ? t.amountLocal / t.amountBtc : 0);
+  return (
+    <div className="flex items-center justify-between px-5 py-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-xs font-bold ${t.type === "buy" ? "text-green-600" : "text-red-600"}`}
+          >
+            {t.type.toUpperCase()}
+          </span>
+          <span className="text-sm font-medium text-gray-900">
+            {symbol}
+            {fmt(txAmount, 2)}
+          </span>
+          <span className="text-xs text-gray-400">
+            {fmt(t.amountBtc, 6)} BTC @ {symbol}
+            {fmt(txPrice)}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
+          <span>{t.date}</span>
+          {txFee > 0 && (
+            <span>
+              fee: {symbol}
+              {fmt(txFee, 2)}
+            </span>
+          )}
+          {t.notes && <span>· {t.notes}</span>}
+        </div>
+      </div>
+      <button
+        onClick={() => void onDelete(t.id)}
+        className="shrink-0 rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
+      >
+        Delete
+      </button>
+    </div>
+  );
+}
+
+function TransactionModal({
+  transactions,
+  symbol,
+  onDelete,
+  onClose,
+}: {
+  transactions: Transaction[];
+  symbol: string;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="mx-4 flex max-h-[80vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+            All Transactions ({transactions.length})
+          </h3>
+          <div className="flex items-center gap-3">
+            <a
+              href="/api/portfolio/export"
+              download
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Export CSV
+            </a>
+            <button
+              onClick={onClose}
+              className="rounded px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        <div className="divide-y divide-gray-50 overflow-y-auto">
+          {sorted.map((t) => (
+            <TransactionRow
+              key={t.id}
+              t={t}
+              symbol={symbol}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioTracker({
   currentPrice,
-  currency,
-  exchangeRate,
+  homeCurrency,
+  symbol,
   overall,
   signals,
   transactions,
   onTransactionsChange,
 }: {
   currentPrice: number;
-  currency: Currency;
-  exchangeRate: ExchangeRate;
+  homeCurrency: Currency;
+  symbol: string;
   overall: Overall;
   signals: Signal[];
   transactions: Transaction[];
   onTransactionsChange: () => void;
 }) {
-  const rate = currency === "AUD" ? exchangeRate.usdToAud : 1;
-  const symbol = currency === "AUD" ? "A$" : "$";
+  const [showAllTx, setShowAllTx] = useState(false);
 
   async function deleteTransaction(id: string) {
     await fetch(`/api/portfolio/transaction/${id}`, { method: "DELETE" });
     onTransactionsChange();
   }
 
-  // Calculate portfolio stats
+  // Calculate portfolio stats using home currency amounts
   const buys = transactions.filter((t) => t.type === "buy");
   const sells = transactions.filter((t) => t.type === "sell");
   const totalBoughtBtc = buys.reduce((s, t) => s + t.amountBtc, 0);
   const totalSoldBtc = sells.reduce((s, t) => s + t.amountBtc, 0);
   const holdingsBtc = totalBoughtBtc - totalSoldBtc;
-  const totalInvestedUsd = buys.reduce((s, t) => s + t.amountUsd, 0);
-  const totalReceivedUsd = sells.reduce((s, t) => s + t.amountUsd, 0);
-  const totalFeesUsd = transactions.reduce((s, t) => s + (t.feeUsd ?? 0), 0);
+  const totalInvested = buys.reduce(
+    (s, t) => s + (t.amount ?? t.amountLocal ?? 0),
+    0,
+  );
+  const totalReceived = sells.reduce(
+    (s, t) => s + (t.amount ?? t.amountLocal ?? 0),
+    0,
+  );
+  const totalFees = transactions.reduce(
+    (s, t) => s + (t.fee ?? t.feeLocal ?? t.feeUsd ?? 0),
+    0,
+  );
 
-  const currentValueUsd = holdingsBtc * currentPrice;
-  const netCostUsd = totalInvestedUsd - totalReceivedUsd;
-  const pnlUsd = currentValueUsd - netCostUsd;
-  const pnlPct = netCostUsd > 0 ? (pnlUsd / netCostUsd) * 100 : 0;
-  const avgCostUsd = totalBoughtBtc > 0 ? totalInvestedUsd / totalBoughtBtc : 0;
+  const currentValue = holdingsBtc * currentPrice;
+  const netCost = totalInvested - totalReceived;
+  const pnl = currentValue - netCost;
+  const pnlPct = netCost > 0 ? (pnl / netCost) * 100 : 0;
+  const avgCost = totalBoughtBtc > 0 ? totalInvested / totalBoughtBtc : 0;
 
-  const currentValue = currentValueUsd * rate;
-  const pnl = pnlUsd * rate;
-  const avgCost = avgCostUsd * rate;
-  const netCost = netCostUsd * rate;
-  const totalFees = totalFeesUsd * rate;
+  const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+  const recentTx = sorted.slice(0, 3);
+  const hasMore = transactions.length > 3;
 
   return (
     <div className="space-y-4">
@@ -343,7 +440,7 @@ export default function PortfolioTracker({
               </span>
               <span>
                 Fees: {symbol}
-                {fmt(totalFees)}
+                {fmt(totalFees, 2)}
               </span>
               <span>
                 {buys.length} buys, {sells.length} sells
@@ -359,8 +456,8 @@ export default function PortfolioTracker({
 
       <AddTransactionForm
         currentPrice={currentPrice}
-        currency={currency}
-        exchangeRate={exchangeRate}
+        homeCurrency={homeCurrency}
+        symbol={symbol}
         overall={overall}
         signals={signals}
         onAdd={onTransactionsChange}
@@ -369,76 +466,49 @@ export default function PortfolioTracker({
       {transactions.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-100 px-5 py-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Transaction History
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Recent Transactions
+              </h4>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/api/portfolio/export"
+                  download
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Export CSV
+                </a>
+                {hasMore && (
+                  <button
+                    onClick={() => setShowAllTx(true)}
+                    className="text-xs text-blue-500 hover:text-blue-700"
+                  >
+                    View all ({transactions.length})
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
           <div className="divide-y divide-gray-50">
-            {[...transactions]
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .map((t) => {
-                const localAmount =
-                  t.amountLocal *
-                  (currency === t.currency
-                    ? 1
-                    : currency === "AUD"
-                      ? rate
-                      : 1 / rate);
-                const displaySymbol = currency === "AUD" ? "A$" : "$";
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between px-5 py-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-bold ${t.type === "buy" ? "text-green-600" : "text-red-600"}`}
-                        >
-                          {t.type.toUpperCase()}
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {fmt(t.amountBtc, 6)} BTC
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          @ {displaySymbol}
-                          {fmt(t.priceUsd * rate)}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
-                        <span>{t.date}</span>
-                        <span>
-                          {displaySymbol}
-                          {fmt(localAmount)}
-                        </span>
-                        {(t.feeUsd ?? 0) > 0 && (
-                          <span>
-                            (fee: {displaySymbol}
-                            {fmt(
-                              (t.feeLocal ?? t.feeUsd ?? 0) *
-                                (currency === (t.currency ?? "USD")
-                                  ? 1
-                                  : currency === "AUD"
-                                    ? rate
-                                    : 1 / rate),
-                            )}
-                            )
-                          </span>
-                        )}
-                        {t.notes && <span>· {t.notes}</span>}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => void deleteTransaction(t.id)}
-                      className="shrink-0 rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                );
-              })}
+            {recentTx.map((t) => (
+              <TransactionRow
+                key={t.id}
+                t={t}
+                symbol={symbol}
+                onDelete={deleteTransaction}
+              />
+            ))}
           </div>
         </div>
+      )}
+
+      {showAllTx && (
+        <TransactionModal
+          transactions={transactions}
+          symbol={symbol}
+          onDelete={deleteTransaction}
+          onClose={() => setShowAllTx(false)}
+        />
       )}
     </div>
   );

@@ -133,27 +133,27 @@ export async function getBtcPriceHistory() {
 
 /**
  * Fetch current BTC data (price, ATH, market cap).
- * Also fetches AUD price for currency conversion.
+ * Returns values in the specified home currency, plus USD for signal calculations.
  */
-export async function getBtcCurrent() {
+export async function getBtcCurrent(homeCurrency = "usd") {
   const data = await fetchJsonCached(
     `${BASE}/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false`,
   );
+  const hc = homeCurrency.toLowerCase();
+  const md = data.market_data;
   return {
-    price: data.market_data.current_price.usd,
-    priceAud: data.market_data.current_price.aud,
-    ath: data.market_data.ath.usd,
-    athDate: data.market_data.ath_date.usd,
-    athChange: data.market_data.ath_change_percentage.usd,
-    marketCap: data.market_data.market_cap.usd,
-    totalVolume: data.market_data.total_volume.usd,
-    high24h: data.market_data.high_24h.usd,
-    low24h: data.market_data.low_24h.usd,
-    high24hAud: data.market_data.high_24h.aud,
-    low24hAud: data.market_data.low_24h.aud,
-    priceChange24h: data.market_data.price_change_percentage_24h,
-    priceChange7d: data.market_data.price_change_percentage_7d,
-    priceChange30d: data.market_data.price_change_percentage_30d,
+    price: md.current_price[hc] ?? md.current_price.usd,
+    priceUsd: md.current_price.usd,
+    ath: md.ath[hc] ?? md.ath.usd,
+    athDate: md.ath_date[hc] ?? md.ath_date.usd,
+    athChange: md.ath_change_percentage[hc] ?? md.ath_change_percentage.usd,
+    marketCap: md.market_cap[hc] ?? md.market_cap.usd,
+    totalVolume: md.total_volume[hc] ?? md.total_volume.usd,
+    high24h: md.high_24h[hc] ?? md.high_24h.usd,
+    low24h: md.low_24h[hc] ?? md.low_24h.usd,
+    priceChange24h: md.price_change_percentage_24h,
+    priceChange7d: md.price_change_percentage_7d,
+    priceChange30d: md.price_change_percentage_30d,
   };
 }
 
@@ -181,13 +181,19 @@ export async function getFearGreedIndex() {
 }
 
 /**
- * Get USD/AUD exchange rate from CoinGecko (piggybacks on existing data).
+ * Get exchange rates relative to the home currency.
+ * Uses BTC prices in both currencies to derive the cross rate.
  */
-export async function getExchangeRate() {
+export async function getExchangeRates(homeCurrency = "usd") {
+  const currencies = "usd,aud,gbp,eur,jpy,nzd,sgd,cad";
   const data = await fetchJsonCached(
-    `${BASE}/simple/price?ids=bitcoin&vs_currencies=usd,aud`,
+    `${BASE}/simple/price?ids=bitcoin&vs_currencies=${currencies}`,
   );
-  const usd = data.bitcoin.usd;
-  const aud = data.bitcoin.aud;
-  return { usdToAud: aud / usd };
+  const hc = homeCurrency.toLowerCase();
+  const homePrice = data.bitcoin[hc] ?? data.bitcoin.usd;
+  const usdPrice = data.bitcoin.usd;
+  return {
+    usdToHome: homePrice / usdPrice,
+    btcPrices: data.bitcoin,
+  };
 }

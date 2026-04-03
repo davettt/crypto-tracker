@@ -1,4 +1,5 @@
-import type { BtcCurrent, ExchangeRate, Currency } from "../types";
+import type { BtcCurrent, Currency, ExchangeRates } from "../types";
+import { CURRENCY_SYMBOLS } from "../types";
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -17,20 +18,33 @@ function pctColor(n: number) {
 
 export default function PriceHeader({
   data,
-  exchangeRate,
-  currency,
+  displayCurrency,
+  homeCurrency,
+  exchangeRates,
 }: {
   data: BtcCurrent;
-  exchangeRate: ExchangeRate;
-  currency: Currency;
+  displayCurrency: Currency;
+  homeCurrency: Currency;
+  exchangeRates: ExchangeRates;
 }) {
-  const rate = exchangeRate.usdToAud;
-  const symbol = currency === "AUD" ? "A$" : "$";
-  const price = currency === "AUD" ? data.priceAud : data.price;
-  const ath = currency === "AUD" ? data.ath * rate : data.ath;
-  const high = currency === "AUD" ? data.high24hAud : data.high24h;
-  const low = currency === "AUD" ? data.low24hAud : data.low24h;
-  const marketCap = currency === "AUD" ? data.marketCap * rate : data.marketCap;
+  // data.price is in homeCurrency. Convert to displayCurrency if different.
+  const dc = displayCurrency.toLowerCase();
+  const hc = homeCurrency.toLowerCase();
+  const rate =
+    dc === hc
+      ? 1
+      : (exchangeRates.btcPrices[dc] ?? 1) / (exchangeRates.btcPrices[hc] ?? 1);
+
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
+  const price = data.price * rate;
+  const ath = data.ath * rate;
+  const high = data.high24h * rate;
+  const low = data.low24h * rate;
+  const marketCap = data.marketCap * rate;
+
+  // Show home currency as secondary if display differs
+  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
+  const showSecondary = displayCurrency !== homeCurrency;
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -39,11 +53,14 @@ export default function PriceHeader({
           {symbol}
           {fmt(price)}
         </h2>
-        {currency === "USD" && (
-          <span className="text-lg text-gray-400">A${fmt(data.priceAud)}</span>
+        {showSecondary && (
+          <span className="text-lg text-gray-400">
+            {homeSymbol}
+            {fmt(data.price)}
+          </span>
         )}
-        {currency === "AUD" && (
-          <span className="text-lg text-gray-400">${fmt(data.price)}</span>
+        {!showSecondary && displayCurrency !== "USD" && (
+          <span className="text-lg text-gray-400">${fmt(data.priceUsd)}</span>
         )}
         <span
           className={`text-lg font-medium ${pctColor(data.priceChange24h)}`}
@@ -71,7 +88,6 @@ export default function PriceHeader({
           MCap: {symbol}
           {fmt(marketCap)}
         </span>
-        <span className="text-gray-400">1 USD = {rate.toFixed(4)} AUD</span>
       </div>
     </div>
   );

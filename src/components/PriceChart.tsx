@@ -5,16 +5,17 @@ import {
   AreaSeries,
   LineSeries,
 } from "lightweight-charts";
-import type { ChartData, Currency, ExchangeRate } from "../types";
+import type { ChartData, Currency, ExchangeRates } from "../types";
+import { CURRENCY_SYMBOLS } from "../types";
 
 export default function PriceChart({
   data,
-  currency,
-  exchangeRate,
+  displayCurrency,
+  exchangeRates,
 }: {
   data: ChartData;
-  currency: Currency;
-  exchangeRate: ExchangeRate;
+  displayCurrency: Currency;
+  exchangeRates: ExchangeRates;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +23,11 @@ export default function PriceChart({
     const container = containerRef.current;
     if (!container || data.daily.length === 0) return;
 
-    const rate = currency === "AUD" ? exchangeRate.usdToAud : 1;
+    // Chart data is in USD; convert to display currency
+    const dc = displayCurrency.toLowerCase();
+    const usdPrice = exchangeRates.btcPrices["usd"] ?? 1;
+    const dcPrice = exchangeRates.btcPrices[dc] ?? usdPrice;
+    const rate = dcPrice / usdPrice;
 
     const chart = createChart(container, {
       layout: {
@@ -82,14 +87,16 @@ export default function PriceChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, currency, exchangeRate]);
+  }, [data, displayCurrency, exchangeRates]);
 
-  const symbol = currency === "AUD" ? "A$" : "$";
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-4">
-        <h3 className="text-sm font-semibold text-gray-700">BTC/{currency}</h3>
+        <h3 className="text-sm font-semibold text-gray-700">
+          BTC/{displayCurrency}
+        </h3>
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <span className="inline-block h-0.5 w-4 bg-blue-500" /> Price (
