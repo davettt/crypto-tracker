@@ -1,0 +1,17 @@
+{
+  "name": "Crypto Tracker",
+  "short_name": "Crypto",
+  "description": "BTC market tracker with buy/sell signals and portfolio tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
