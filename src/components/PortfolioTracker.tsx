@@ -55,6 +55,7 @@ function AddTransactionForm({
   const [price, setPrice] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
+  const [platform, setPlatform] = useState("");
   const [open, setOpen] = useState(false);
 
   const amountNum = parseFloat(amount) || 0;
@@ -79,6 +80,7 @@ function AddTransactionForm({
         currency: homeCurrency,
         date,
         notes,
+        platform,
       }),
     });
 
@@ -86,6 +88,7 @@ function AddTransactionForm({
     setFee("");
     setPrice("");
     setNotes("");
+    setPlatform("");
     setOpen(false);
     onAdd();
   }
@@ -203,6 +206,18 @@ function AddTransactionForm({
         />
       </div>
       <div>
+        <label className="block text-xs text-gray-500">
+          Platform (optional)
+        </label>
+        <input
+          type="text"
+          value={platform}
+          onChange={(e) => setPlatform(e.target.value)}
+          placeholder="e.g. Coinbase, Binance"
+          className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
+        />
+      </div>
+      <div>
         <label className="block text-xs text-gray-500">Notes (optional)</label>
         <input
           type="text"
@@ -235,15 +250,151 @@ function TransactionRow({
   t,
   symbol,
   onDelete,
+  onEdit,
 }: {
   t: Transaction;
   symbol: string;
   onDelete: (id: string) => void;
+  onEdit: (id: string, updates: Record<string, unknown>) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const txAmount = t.amount ?? t.amountLocal ?? 0;
   const txFee = t.fee ?? t.feeLocal ?? t.feeUsd ?? 0;
   const txPrice =
     t.price ?? (t.amountLocal && t.amountBtc ? t.amountLocal / t.amountBtc : 0);
+
+  const [editType, setEditType] = useState(t.type);
+  const [editAmount, setEditAmount] = useState(String(txAmount));
+  const [editFee, setEditFee] = useState(String(txFee));
+  const [editPrice, setEditPrice] = useState(String(txPrice));
+  const [editDate, setEditDate] = useState(t.date);
+  const [editPlatform, setEditPlatform] = useState(t.platform ?? "");
+  const [editNotes, setEditNotes] = useState(t.notes);
+
+  function handleSave() {
+    const amount = parseFloat(editAmount) || 0;
+    const fee = parseFloat(editFee) || 0;
+    const price = parseFloat(editPrice) || 0;
+    const effectiveAmount = editType === "buy" ? amount - fee : amount;
+    const amountBtc = price > 0 ? effectiveAmount / price : 0;
+    if (amount <= 0 || amountBtc <= 0) return;
+
+    onEdit(t.id, {
+      type: editType,
+      amount,
+      amountBtc,
+      price,
+      fee,
+      date: editDate,
+      platform: editPlatform,
+      notes: editNotes,
+    });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-2 px-5 py-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setEditType("buy")}
+            className={`flex-1 rounded py-1 text-xs font-medium ${editType === "buy" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            Buy
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditType("sell")}
+            className={`flex-1 rounded py-1 text-xs font-medium ${editType === "sell" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            Sell
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <label className="block text-xs text-gray-400">
+              Amount ({symbol})
+            </label>
+            <input
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400">
+              Fee ({symbol})
+            </label>
+            <input
+              type="number"
+              value={editFee}
+              onChange={(e) => setEditFee(e.target.value)}
+              step="0.01"
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400">
+              Price/BTC ({symbol})
+            </label>
+            <input
+              type="number"
+              value={editPrice}
+              onChange={(e) => setEditPrice(e.target.value)}
+              step="0.01"
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <label className="block text-xs text-gray-400">Date</label>
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400">Platform</label>
+            <input
+              type="text"
+              value={editPlatform}
+              onChange={(e) => setEditPlatform(e.target.value)}
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400">Notes</label>
+            <input
+              type="text"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="rounded bg-gray-900 px-3 py-1 text-xs text-white hover:bg-gray-700"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between px-5 py-3">
       <div className="min-w-0">
@@ -264,6 +415,7 @@ function TransactionRow({
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
           <span>{t.date}</span>
+          {t.platform && <span>· {t.platform}</span>}
           {txFee > 0 && (
             <span>
               fee: {symbol}
@@ -273,12 +425,20 @@ function TransactionRow({
           {t.notes && <span>· {t.notes}</span>}
         </div>
       </div>
-      <button
-        onClick={() => void onDelete(t.id)}
-        className="shrink-0 rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
-      >
-        Delete
-      </button>
+      <div className="flex shrink-0 gap-1">
+        <button
+          onClick={() => setEditing(true)}
+          className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => void onDelete(t.id)}
+          className="rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
+        >
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
@@ -287,11 +447,13 @@ function TransactionModal({
   transactions,
   symbol,
   onDelete,
+  onEdit,
   onClose,
 }: {
   transactions: Transaction[];
   symbol: string;
   onDelete: (id: string) => void;
+  onEdit: (id: string, updates: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
   const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
@@ -331,6 +493,7 @@ function TransactionModal({
               t={t}
               symbol={symbol}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </div>
@@ -360,6 +523,15 @@ export default function PortfolioTracker({
 
   async function deleteTransaction(id: string) {
     await fetch(`/api/portfolio/transaction/${id}`, { method: "DELETE" });
+    onTransactionsChange();
+  }
+
+  async function editTransaction(id: string, updates: Record<string, unknown>) {
+    await fetch(`/api/portfolio/transaction/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
     onTransactionsChange();
   }
 
@@ -496,6 +668,7 @@ export default function PortfolioTracker({
                 t={t}
                 symbol={symbol}
                 onDelete={deleteTransaction}
+                onEdit={editTransaction}
               />
             ))}
           </div>
@@ -507,6 +680,7 @@ export default function PortfolioTracker({
           transactions={transactions}
           symbol={symbol}
           onDelete={deleteTransaction}
+          onEdit={editTransaction}
           onClose={() => setShowAllTx(false)}
         />
       )}

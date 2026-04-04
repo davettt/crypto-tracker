@@ -113,6 +113,7 @@ export interface Transaction {
   amountLocal?: number;
   date: string;
   notes: string;
+  platform: string;
   createdAt: string;
 }
 

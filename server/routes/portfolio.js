@@ -134,6 +134,7 @@ router.post("/transaction", async (req, res) => {
       currency,
       date,
       notes,
+      platform,
       // Legacy fields accepted for backward compat
       amountUsd,
       priceUsd,
@@ -174,6 +175,14 @@ router.post("/transaction", async (req, res) => {
         .status(400)
         .json({ error: "notes must be a string under 500 characters" });
     }
+    if (
+      platform != null &&
+      (typeof platform !== "string" || platform.length > 100)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "platform must be a string under 100 characters" });
+    }
 
     const transaction = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -185,6 +194,7 @@ router.post("/transaction", async (req, res) => {
       currency: txCurrency,
       date: date ?? new Date().toISOString().split("T")[0],
       notes: notes ?? "",
+      platform: platform ?? "",
       createdAt: new Date().toISOString(),
     };
 
@@ -192,6 +202,63 @@ router.post("/transaction", async (req, res) => {
     await savePortfolio(portfolio);
 
     res.json(transaction);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// PUT /api/portfolio/transaction/:id — edit an existing transaction
+router.put("/transaction/:id", async (req, res) => {
+  try {
+    const portfolio = await loadPortfolio();
+    const idx = portfolio.transactions.findIndex((t) => t.id === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    const { type, amount, amountBtc, price, fee, date, notes, platform } =
+      req.body;
+
+    if (type != null && !["buy", "sell"].includes(type)) {
+      return res.status(400).json({ error: 'type must be "buy" or "sell"' });
+    }
+    if (
+      amountBtc != null &&
+      (typeof amountBtc !== "number" || !isFinite(amountBtc) || amountBtc <= 0)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "amountBtc must be a positive number" });
+    }
+    if (date != null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "date must be YYYY-MM-DD format" });
+    }
+    if (notes != null && (typeof notes !== "string" || notes.length > 500)) {
+      return res
+        .status(400)
+        .json({ error: "notes must be a string under 500 characters" });
+    }
+    if (
+      platform != null &&
+      (typeof platform !== "string" || platform.length > 100)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "platform must be a string under 100 characters" });
+    }
+
+    const tx = portfolio.transactions[idx];
+    if (type != null) tx.type = type;
+    if (amount != null) tx.amount = amount;
+    if (amountBtc != null) tx.amountBtc = amountBtc;
+    if (price != null) tx.price = price;
+    if (fee != null) tx.fee = fee;
+    if (date != null) tx.date = date;
+    if (notes != null) tx.notes = notes;
+    if (platform != null) tx.platform = platform;
+
+    await savePortfolio(portfolio);
+    res.json(tx);
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -225,7 +292,7 @@ router.get("/export", async (_req, res) => {
       currency +
       "),Fee (" +
       currency +
-      "),Currency,Notes";
+      "),Currency,Platform,Notes";
 
     const rows = [...txs]
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -236,6 +303,7 @@ router.get("/export", async (_req, res) => {
           (t.amountLocal && t.amountBtc ? t.amountLocal / t.amountBtc : 0);
         const fee = t.fee ?? t.feeLocal ?? t.feeUsd ?? 0;
         const notes = (t.notes ?? "").replace(/"/g, '""');
+        const platform = (t.platform ?? "").replace(/"/g, '""');
         return [
           t.date,
           t.type,
@@ -244,6 +312,7 @@ router.get("/export", async (_req, res) => {
           price.toFixed(2),
           fee.toFixed(2),
           t.currency ?? currency,
+          `"${platform}"`,
           `"${notes}"`,
         ].join(",");
       });
