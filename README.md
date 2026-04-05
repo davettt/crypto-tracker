@@ -21,6 +21,16 @@ Multi-asset crypto tracker with buy/sell signals for long-term holders. Analyses
 - CSV export for tax records and transactions
 - Persistent price history (accumulates over time for future 200-week MA)
 
+## Disclaimer
+
+This is a personal project built for educational and informational purposes only. It is not financial advice. Nothing in this application constitutes a recommendation to buy, sell, or hold any cryptocurrency or other investment. All signals, indicators, and position sizing suggestions are purely algorithmic and do not account for your individual financial situation, risk tolerance, or investment objectives.
+
+The tax calculations in this application (including FIFO cost basis, CGT discount, and estimated tax) are based on a simplified interpretation of Australian tax rules and have not been verified for accuracy. Tax laws change frequently and vary by jurisdiction. Do not rely on this application for tax reporting — always consult a qualified tax professional or accountant for your actual tax obligations.
+
+Cryptocurrency markets are highly volatile. You could lose some or all of your investment. Always do your own research and consult a qualified financial adviser before making any investment decisions. Use this tool entirely at your own risk.
+
+This software is provided as-is with no warranty of any kind. The author accepts no liability for any losses, damages, or other consequences arising from the use of this application.
+
 ## Setup
 
 ```bash
@@ -81,11 +91,3 @@ If you'd like to use this project:
 - ✅ Report bugs - File issues for actual bugs
 - ❌ Submit pull requests - I won't be reviewing these
 - ❌ Request features - Feature requests won't be considered
-
-## Disclaimer
-
-This is a personal project built for educational and informational purposes only. It is not financial advice. Nothing in this application constitutes a recommendation to buy, sell, or hold any cryptocurrency or other investment. All signals, indicators, and position sizing suggestions are purely algorithmic and do not account for your individual financial situation, risk tolerance, or investment objectives.
-
-Cryptocurrency markets are highly volatile. You could lose some or all of your investment. Always do your own research and consult a qualified financial adviser before making any investment decisions. Use this tool entirely at your own risk.
-
-This software is provided as-is with no warranty of any kind. The author accepts no liability for any losses, damages, or other consequences arising from the use of this application.

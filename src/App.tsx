@@ -253,6 +253,18 @@ export default function App() {
           </div>
         )}
       </main>
+
+      <footer className="border-t border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
+        <div className="mx-auto max-w-6xl px-4">
+          <p>
+            Not financial or tax advice. All signals are algorithmic and may not
+            reflect current market conditions. Tax calculations are estimates
+            based on simplified Australian tax rules — do not rely on them for
+            tax reporting. Always consult a qualified financial adviser and tax
+            professional. Use at your own risk.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
