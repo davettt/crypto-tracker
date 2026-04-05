@@ -1,11 +1,18 @@
 import { useState } from "react";
-import type { Transaction, Currency, Overall, Signal } from "../types";
+import type { Transaction, Currency, Overall, Signal, AssetId } from "../types";
+import { ASSETS } from "../types";
+import CsvImport from "./CsvImport";
 
 function fmt(n: number, decimals = 0) {
   return n.toLocaleString("en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+}
+
+/** Get the crypto amount from a transaction, handling legacy field names */
+function getCryptoAmount(t: Transaction): number {
+  return t.amountCrypto ?? t.amountBtc ?? 0;
 }
 
 function buildDefaultNote(overall: Overall, signals: Signal[]) {
@@ -38,6 +45,9 @@ function AddTransactionForm({
   currentPrice,
   homeCurrency,
   symbol,
+  assetSymbol,
+  assetDecimals,
+  activeAsset,
   overall,
   signals,
   onAdd,
@@ -45,6 +55,9 @@ function AddTransactionForm({
   currentPrice: number;
   homeCurrency: Currency;
   symbol: string;
+  assetSymbol: string;
+  assetDecimals: number;
+  activeAsset: AssetId;
   overall: Overall;
   signals: Signal[];
   onAdd: () => void;
@@ -62,7 +75,7 @@ function AddTransactionForm({
   const feeNum = parseFloat(fee) || 0;
   const priceNum = parseFloat(price) || currentPrice;
   const effectiveAmount = type === "buy" ? amountNum - feeNum : amountNum;
-  const btcAmount = priceNum > 0 ? effectiveAmount / priceNum : 0;
+  const cryptoAmount = priceNum > 0 ? effectiveAmount / priceNum : 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,8 +86,9 @@ function AddTransactionForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type,
+        asset: activeAsset,
         amount: amountNum,
-        amountBtc: btcAmount,
+        amountCrypto: cryptoAmount,
         price: priceNum,
         fee: feeNum,
         currency: homeCurrency,
@@ -154,7 +168,7 @@ function AddTransactionForm({
       </div>
       <div>
         <label className="block text-xs text-gray-500">
-          Price per BTC ({symbol}) — defaults to current
+          Price per {assetSymbol} ({symbol}) — defaults to current
         </label>
         <input
           type="number"
@@ -176,15 +190,15 @@ function AddTransactionForm({
                 {fmt(effectiveAmount, 2)} invested
               </p>
               <p className="font-medium">
-                = {fmt(btcAmount, 8)} BTC at {symbol}
-                {fmt(priceNum)}/BTC
+                = {fmt(cryptoAmount, assetDecimals)} {assetSymbol} at {symbol}
+                {fmt(priceNum)}/{assetSymbol}
               </p>
             </>
           ) : (
             <>
               <p>
-                {fmt(btcAmount, 8)} BTC at {symbol}
-                {fmt(priceNum)}/BTC
+                {fmt(cryptoAmount, assetDecimals)} {assetSymbol} at {symbol}
+                {fmt(priceNum)}/{assetSymbol}
               </p>
               <p className="font-medium">
                 = {symbol}
@@ -249,19 +263,23 @@ function AddTransactionForm({
 function TransactionRow({
   t,
   symbol,
+  assetSymbol,
+  assetDecimals,
   onDelete,
   onEdit,
 }: {
   t: Transaction;
   symbol: string;
+  assetSymbol: string;
+  assetDecimals: number;
   onDelete: (id: string) => void;
   onEdit: (id: string, updates: Record<string, unknown>) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const txAmount = t.amount ?? t.amountLocal ?? 0;
   const txFee = t.fee ?? t.feeLocal ?? t.feeUsd ?? 0;
-  const txPrice =
-    t.price ?? (t.amountLocal && t.amountBtc ? t.amountLocal / t.amountBtc : 0);
+  const cryptoAmt = getCryptoAmount(t);
+  const txPrice = t.price ?? (txAmount && cryptoAmt ? txAmount / cryptoAmt : 0);
 
   const [editType, setEditType] = useState(t.type);
   const [editAmount, setEditAmount] = useState(String(txAmount));
@@ -276,13 +294,13 @@ function TransactionRow({
     const fee = parseFloat(editFee) || 0;
     const price = parseFloat(editPrice) || 0;
     const effectiveAmount = editType === "buy" ? amount - fee : amount;
-    const amountBtc = price > 0 ? effectiveAmount / price : 0;
-    if (amount <= 0 || amountBtc <= 0) return;
+    const amountCrypto = price > 0 ? effectiveAmount / price : 0;
+    if (amount <= 0 || amountCrypto <= 0) return;
 
     onEdit(t.id, {
       type: editType,
       amount,
-      amountBtc,
+      amountCrypto,
       price,
       fee,
       date: editDate,
@@ -337,7 +355,7 @@ function TransactionRow({
           </div>
           <div>
             <label className="block text-xs text-gray-400">
-              Price/BTC ({symbol})
+              Price/{assetSymbol} ({symbol})
             </label>
             <input
               type="number"
@@ -409,7 +427,7 @@ function TransactionRow({
             {fmt(txAmount, 2)}
           </span>
           <span className="text-xs text-gray-400">
-            {fmt(t.amountBtc, 6)} BTC @ {symbol}
+            {fmt(cryptoAmt, assetDecimals)} {assetSymbol} @ {symbol}
             {fmt(txPrice)}
           </span>
         </div>
@@ -446,12 +464,16 @@ function TransactionRow({
 function TransactionModal({
   transactions,
   symbol,
+  assetSymbol,
+  assetDecimals,
   onDelete,
   onEdit,
   onClose,
 }: {
   transactions: Transaction[];
   symbol: string;
+  assetSymbol: string;
+  assetDecimals: number;
   onDelete: (id: string) => void;
   onEdit: (id: string, updates: Record<string, unknown>) => void;
   onClose: () => void;
@@ -492,6 +514,8 @@ function TransactionModal({
               key={t.id}
               t={t}
               symbol={symbol}
+              assetSymbol={assetSymbol}
+              assetDecimals={assetDecimals}
               onDelete={onDelete}
               onEdit={onEdit}
             />
@@ -509,6 +533,7 @@ export default function PortfolioTracker({
   overall,
   signals,
   transactions,
+  activeAsset,
   onTransactionsChange,
 }: {
   currentPrice: number;
@@ -517,9 +542,14 @@ export default function PortfolioTracker({
   overall: Overall;
   signals: Signal[];
   transactions: Transaction[];
+  activeAsset: AssetId;
   onTransactionsChange: () => void;
 }) {
   const [showAllTx, setShowAllTx] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const assetConfig = ASSETS[activeAsset];
+  const assetSymbol = assetConfig.symbol;
+  const assetDecimals = assetConfig.decimals;
 
   async function deleteTransaction(id: string) {
     await fetch(`/api/portfolio/transaction/${id}`, { method: "DELETE" });
@@ -535,12 +565,12 @@ export default function PortfolioTracker({
     onTransactionsChange();
   }
 
-  // Calculate portfolio stats using home currency amounts
+  // Calculate portfolio stats
   const buys = transactions.filter((t) => t.type === "buy");
   const sells = transactions.filter((t) => t.type === "sell");
-  const totalBoughtBtc = buys.reduce((s, t) => s + t.amountBtc, 0);
-  const totalSoldBtc = sells.reduce((s, t) => s + t.amountBtc, 0);
-  const holdingsBtc = totalBoughtBtc - totalSoldBtc;
+  const totalBoughtCrypto = buys.reduce((s, t) => s + getCryptoAmount(t), 0);
+  const totalSoldCrypto = sells.reduce((s, t) => s + getCryptoAmount(t), 0);
+  const holdingsCrypto = totalBoughtCrypto - totalSoldCrypto;
   const totalInvested = buys.reduce(
     (s, t) => s + (t.amount ?? t.amountLocal ?? 0),
     0,
@@ -554,11 +584,11 @@ export default function PortfolioTracker({
     0,
   );
 
-  const currentValue = holdingsBtc * currentPrice;
+  const currentValue = holdingsCrypto * currentPrice;
   const netCost = totalInvested - totalReceived;
   const pnl = currentValue - netCost;
   const pnlPct = netCost > 0 ? (pnl / netCost) * 100 : 0;
-  const avgCost = totalBoughtBtc > 0 ? totalInvested / totalBoughtBtc : 0;
+  const avgCost = totalBoughtCrypto > 0 ? totalInvested / totalBoughtCrypto : 0;
 
   const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
   const recentTx = sorted.slice(0, 3);
@@ -568,7 +598,7 @@ export default function PortfolioTracker({
     <div className="space-y-4">
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-          Portfolio
+          {assetSymbol} Portfolio
         </h3>
 
         {transactions.length > 0 ? (
@@ -577,7 +607,7 @@ export default function PortfolioTracker({
               <div>
                 <p className="text-xs text-gray-500">Holdings</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {fmt(holdingsBtc, 6)} BTC
+                  {fmt(holdingsCrypto, assetDecimals)} {assetSymbol}
                 </p>
                 <p className="text-sm text-gray-500">
                   {symbol}
@@ -604,7 +634,7 @@ export default function PortfolioTracker({
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
               <span>
                 Avg cost: {symbol}
-                {fmt(avgCost)}/BTC
+                {fmt(avgCost)}/{assetSymbol}
               </span>
               <span>
                 Net invested: {symbol}
@@ -620,9 +650,17 @@ export default function PortfolioTracker({
             </div>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-gray-400">
-            No transactions yet. Record your first buy below.
-          </p>
+          <div className="mt-3">
+            <p className="text-sm text-gray-400">
+              No {assetSymbol} transactions yet. Record your first buy below.
+            </p>
+            <button
+              onClick={() => setShowImport(true)}
+              className="mt-2 text-xs text-blue-500 hover:text-blue-700"
+            >
+              Import from CoinSpot CSV
+            </button>
+          </div>
         )}
       </div>
 
@@ -630,6 +668,9 @@ export default function PortfolioTracker({
         currentPrice={currentPrice}
         homeCurrency={homeCurrency}
         symbol={symbol}
+        assetSymbol={assetSymbol}
+        assetDecimals={assetDecimals}
+        activeAsset={activeAsset}
         overall={overall}
         signals={signals}
         onAdd={onTransactionsChange}
@@ -643,6 +684,12 @@ export default function PortfolioTracker({
                 Recent Transactions
               </h4>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="text-xs text-blue-500 hover:text-blue-700"
+                >
+                  Import CSV
+                </button>
                 <a
                   href="/api/portfolio/export"
                   download
@@ -667,6 +714,8 @@ export default function PortfolioTracker({
                 key={t.id}
                 t={t}
                 symbol={symbol}
+                assetSymbol={assetSymbol}
+                assetDecimals={assetDecimals}
                 onDelete={deleteTransaction}
                 onEdit={editTransaction}
               />
@@ -679,9 +728,18 @@ export default function PortfolioTracker({
         <TransactionModal
           transactions={transactions}
           symbol={symbol}
+          assetSymbol={assetSymbol}
+          assetDecimals={assetDecimals}
           onDelete={deleteTransaction}
           onEdit={editTransaction}
           onClose={() => setShowAllTx(false)}
+        />
+      )}
+
+      {showImport && (
+        <CsvImport
+          onImported={onTransactionsChange}
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>

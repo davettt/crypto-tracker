@@ -1,13 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useMarketStore } from "./stores/marketStore";
-import type { Transaction, PortfolioSettings } from "./types";
-import { CURRENCIES, CURRENCY_SYMBOLS } from "./types";
+import type { Transaction, PortfolioSettings, AssetId } from "./types";
+import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from "./types";
 import PriceHeader from "./components/PriceHeader";
 import SignalPanel from "./components/SignalPanel";
 import PriceChart from "./components/PriceChart";
 import RsiChart from "./components/RsiChart";
 import PositionCalculator from "./components/PositionCalculator";
 import PortfolioTracker from "./components/PortfolioTracker";
+import TaxSettings from "./components/TaxSettings";
+import TaxReport from "./components/TaxReport";
+import TargetCalculator from "./components/TargetCalculator";
 
 interface PortfolioData {
   settings: PortfolioSettings;
@@ -21,8 +24,10 @@ async function fetchPortfolio(): Promise<PortfolioData> {
 
 export default function App() {
   const {
-    overview,
-    chartData,
+    overviewByAsset,
+    chartByAsset,
+    activeAsset,
+    setActiveAsset,
     loading,
     error,
     homeCurrency,
@@ -33,13 +38,21 @@ export default function App() {
     fetchChart,
   } = useMarketStore();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const overview = overviewByAsset[activeAsset] ?? null;
+  const chartData = chartByAsset[activeAsset] ?? null;
+
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
   const didInit = useRef(false);
 
+  // Filter transactions for active asset
+  const transactions = allTransactions.filter(
+    (t) => (t.asset ?? "bitcoin") === activeAsset,
+  );
+
   const reloadPortfolio = useCallback(() => {
     void fetchPortfolio().then((data) => {
-      setTransactions(data.transactions ?? []);
+      setAllTransactions(data.transactions ?? []);
       setSettings(data.settings);
     });
   }, []);
@@ -50,10 +63,21 @@ export default function App() {
     void fetchOverview();
     void fetchChart();
     void fetchPortfolio().then((data) => {
-      setTransactions(data.transactions ?? []);
+      setAllTransactions(data.transactions ?? []);
       setSettings(data.settings);
     });
   }, [fetchOverview, fetchChart]);
+
+  // Fetch data when switching assets (if not cached)
+  function handleAssetChange(assetId: AssetId) {
+    setActiveAsset(assetId);
+    if (!overviewByAsset[assetId]) {
+      void fetchOverview(assetId);
+    }
+    if (!chartByAsset[assetId]) {
+      void fetchChart(assetId);
+    }
+  }
 
   async function changeHomeCurrency(newCurrency: string) {
     await fetch("/api/portfolio/settings", {
@@ -73,9 +97,7 @@ export default function App() {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold text-gray-900">
-              BTC Market Tracker
-            </h1>
+            <h1 className="text-lg font-bold text-gray-900">Crypto Tracker</h1>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <label className="text-xs text-gray-400">View in</label>
@@ -109,6 +131,27 @@ export default function App() {
               </button>
             </div>
           </div>
+
+          {/* Asset tabs */}
+          <div className="mt-3 flex gap-1">
+            {ASSET_LIST.map((id) => {
+              const cfg = ASSETS[id];
+              const isActive = id === activeAsset;
+              return (
+                <button
+                  key={id}
+                  onClick={() => handleAssetChange(id)}
+                  className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  {cfg.symbol}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -132,6 +175,7 @@ export default function App() {
               displayCurrency={displayCurrency}
               homeCurrency={homeCurrency}
               exchangeRates={overview.exchangeRates}
+              activeAsset={activeAsset}
             />
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -142,6 +186,7 @@ export default function App() {
                       data={chartData}
                       displayCurrency={displayCurrency}
                       exchangeRates={overview.exchangeRates}
+                      activeAsset={activeAsset}
                     />
                     <RsiChart data={chartData} />
                   </>
@@ -163,8 +208,10 @@ export default function App() {
                 currentPrice={overview.current.price}
                 homeCurrency={homeCurrency}
                 symbol={homeSymbol}
-                transactions={transactions}
+                transactions={allTransactions}
                 settings={settings}
+                activeAsset={activeAsset}
+                overviewByAsset={overviewByAsset}
                 onSettingsChange={() => {
                   reloadPortfolio();
                   void fetchOverview();
@@ -178,9 +225,31 @@ export default function App() {
                 overall={overview.overall}
                 signals={overview.signals}
                 transactions={transactions}
+                activeAsset={activeAsset}
                 onTransactionsChange={reloadPortfolio}
               />
             </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <TargetCalculator
+                activeAsset={activeAsset}
+                currentPrice={overview.current.price}
+                symbol={homeSymbol}
+                taxSettings={settings?.taxSettings}
+                transactions={transactions}
+              />
+              <TaxReport
+                symbol={homeSymbol}
+                taxSettings={settings?.taxSettings}
+              />
+            </div>
+
+            <TaxSettings
+              settings={settings?.taxSettings}
+              onSave={() => {
+                reloadPortfolio();
+              }}
+            />
           </div>
         )}
       </main>

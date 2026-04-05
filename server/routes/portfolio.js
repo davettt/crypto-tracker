@@ -2,6 +2,7 @@ import { Router } from "express";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { ASSET_IDS, isValidAsset, DEFAULT_ASSET } from "../assets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, "../../local_data/portfolio.json");
@@ -20,33 +21,63 @@ const SUPPORTED_CURRENCIES = [
 const router = Router();
 
 function migratePortfolio(portfolio) {
-  if (portfolio.settings?.homeCurrency) return portfolio;
+  // Settings migration
+  if (!portfolio.settings?.homeCurrency) {
+    const txCurrencies = (portfolio.transactions ?? [])
+      .map((t) => t.currency)
+      .filter(Boolean);
+    const homeCurrency = txCurrencies.length > 0 ? txCurrencies[0] : "USD";
+    portfolio.settings = {
+      ...portfolio.settings,
+      homeCurrency,
+      initialCapital: portfolio.settings?.initialCapitalUsd ?? 0,
+      needsCapitalConfirmation:
+        (portfolio.settings?.initialCapitalUsd ?? 0) > 0,
+      mode: portfolio.settings?.mode ?? "dca",
+    };
+  }
 
-  // Infer home currency from existing transactions
-  const txCurrencies = (portfolio.transactions ?? [])
-    .map((t) => t.currency)
-    .filter(Boolean);
-  const homeCurrency = txCurrencies.length > 0 ? txCurrencies[0] : "USD";
+  // Add default taxSettings if missing
+  if (!portfolio.settings.taxSettings) {
+    portfolio.settings.taxSettings = {
+      marginalTaxRate: 0.325,
+      exchangeFeeRate: 0.006,
+    };
+  }
 
-  portfolio.settings = {
-    ...portfolio.settings,
-    homeCurrency,
-    initialCapital: portfolio.settings?.initialCapitalUsd ?? 0,
-    needsCapitalConfirmation: (portfolio.settings?.initialCapitalUsd ?? 0) > 0,
-    mode: portfolio.settings?.mode ?? "dca",
-  };
-
-  // Migrate transactions: promote amountLocal to canonical
+  // Transaction migration
   if (portfolio.transactions) {
-    portfolio.transactions = portfolio.transactions.map((t) => ({
-      ...t,
-      amount: t.amountLocal ?? t.amountUsd ?? 0,
-      price:
-        t.amountLocal && t.amountBtc
-          ? t.amountLocal / t.amountBtc
-          : (t.priceUsd ?? 0),
-      fee: t.feeLocal ?? t.feeUsd ?? 0,
-    }));
+    let changed = false;
+    portfolio.transactions = portfolio.transactions.map((t) => {
+      const updates = {};
+
+      // Legacy amount fields
+      if (t.amount == null && (t.amountLocal != null || t.amountUsd != null)) {
+        updates.amount = t.amountLocal ?? t.amountUsd ?? 0;
+      }
+      if (t.price == null && t.priceUsd != null) {
+        updates.price =
+          t.amountLocal && t.amountBtc
+            ? t.amountLocal / t.amountBtc
+            : (t.priceUsd ?? 0);
+      }
+      if (t.fee == null && (t.feeLocal != null || t.feeUsd != null)) {
+        updates.fee = t.feeLocal ?? t.feeUsd ?? 0;
+      }
+
+      // Multi-asset migration: add asset field, rename amountBtc → amountCrypto
+      if (!t.asset) {
+        updates.asset = DEFAULT_ASSET;
+        changed = true;
+      }
+      if (t.amountCrypto == null && t.amountBtc != null) {
+        updates.amountCrypto = t.amountBtc;
+        changed = true;
+      }
+
+      if (Object.keys(updates).length === 0) return t;
+      return { ...t, ...updates };
+    });
   }
 
   return portfolio;
@@ -63,6 +94,7 @@ export async function loadPortfolio() {
         homeCurrency: "USD",
         initialCapital: 0,
         mode: "dca",
+        taxSettings: { marginalTaxRate: 0.325, exchangeFeeRate: 0.006 },
       },
       transactions: [],
     };
@@ -74,20 +106,26 @@ async function savePortfolio(data) {
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// GET /api/portfolio — return settings + transactions
-router.get("/", async (_req, res) => {
+// GET /api/portfolio — return settings + transactions (optionally filtered by asset)
+router.get("/", async (req, res) => {
   try {
     const portfolio = await loadPortfolio();
+    const assetFilter = req.query.asset;
+    if (assetFilter) {
+      portfolio.transactions = portfolio.transactions.filter(
+        (t) => (t.asset ?? DEFAULT_ASSET) === assetFilter,
+      );
+    }
     res.json(portfolio);
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
 });
 
-// PUT /api/portfolio/settings — update capital pool, mode, and home currency
+// PUT /api/portfolio/settings — update capital pool, mode, home currency, tax settings
 router.put("/settings", async (req, res) => {
   try {
-    const { initialCapital, homeCurrency, mode } = req.body;
+    const { initialCapital, homeCurrency, mode, taxSettings } = req.body;
     if (
       initialCapital != null &&
       (typeof initialCapital !== "number" ||
@@ -115,6 +153,12 @@ router.put("/settings", async (req, res) => {
     if (mode != null) {
       portfolio.settings.mode = mode;
     }
+    if (taxSettings != null) {
+      portfolio.settings.taxSettings = {
+        ...portfolio.settings.taxSettings,
+        ...taxSettings,
+      };
+    }
     await savePortfolio(portfolio);
     res.json(portfolio.settings);
   } catch (err) {
@@ -127,33 +171,36 @@ router.post("/transaction", async (req, res) => {
   try {
     const {
       type,
+      asset,
       amount,
-      amountBtc,
+      amountCrypto,
+      amountBtc, // legacy compat
       price,
       fee,
       currency,
       date,
       notes,
       platform,
-      // Legacy fields accepted for backward compat
-      amountUsd,
-      priceUsd,
-      feeUsd,
-      feeLocal,
-      amountLocal,
     } = req.body;
 
     if (!type || !["buy", "sell"].includes(type)) {
       return res.status(400).json({ error: 'type must be "buy" or "sell"' });
     }
+
+    const txAsset = asset ?? DEFAULT_ASSET;
+    if (!isValidAsset(txAsset)) {
+      return res.status(400).json({ error: "Unknown asset" });
+    }
+
+    const txAmountCrypto = amountCrypto ?? amountBtc;
     if (
-      typeof amountBtc !== "number" ||
-      !isFinite(amountBtc) ||
-      amountBtc <= 0
+      typeof txAmountCrypto !== "number" ||
+      !isFinite(txAmountCrypto) ||
+      txAmountCrypto <= 0
     ) {
       return res
         .status(400)
-        .json({ error: "amountBtc must be a positive number" });
+        .json({ error: "amountCrypto must be a positive number" });
     }
 
     const portfolio = await loadPortfolio();
@@ -163,9 +210,9 @@ router.post("/transaction", async (req, res) => {
       return res.status(400).json({ error: "Unsupported currency" });
     }
 
-    const txAmount = amount ?? amountLocal ?? amountUsd ?? 0;
-    const txPrice = price ?? priceUsd ?? 0;
-    const txFee = fee ?? feeLocal ?? feeUsd ?? 0;
+    const txAmount = amount ?? 0;
+    const txPrice = price ?? 0;
+    const txFee = fee ?? 0;
 
     if (date != null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "date must be YYYY-MM-DD format" });
@@ -187,8 +234,9 @@ router.post("/transaction", async (req, res) => {
     const transaction = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       type,
+      asset: txAsset,
       amount: txAmount,
-      amountBtc,
+      amountCrypto: txAmountCrypto,
       price: txPrice,
       fee: txFee,
       currency: txCurrency,
@@ -216,19 +264,31 @@ router.put("/transaction/:id", async (req, res) => {
       return res.status(404).json({ error: "Transaction not found" });
     }
 
-    const { type, amount, amountBtc, price, fee, date, notes, platform } =
-      req.body;
+    const {
+      type,
+      amount,
+      amountCrypto,
+      amountBtc,
+      price,
+      fee,
+      date,
+      notes,
+      platform,
+    } = req.body;
 
     if (type != null && !["buy", "sell"].includes(type)) {
       return res.status(400).json({ error: 'type must be "buy" or "sell"' });
     }
+    const newAmountCrypto = amountCrypto ?? amountBtc;
     if (
-      amountBtc != null &&
-      (typeof amountBtc !== "number" || !isFinite(amountBtc) || amountBtc <= 0)
+      newAmountCrypto != null &&
+      (typeof newAmountCrypto !== "number" ||
+        !isFinite(newAmountCrypto) ||
+        newAmountCrypto <= 0)
     ) {
       return res
         .status(400)
-        .json({ error: "amountBtc must be a positive number" });
+        .json({ error: "amountCrypto must be a positive number" });
     }
     if (date != null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "date must be YYYY-MM-DD format" });
@@ -250,7 +310,7 @@ router.put("/transaction/:id", async (req, res) => {
     const tx = portfolio.transactions[idx];
     if (type != null) tx.type = type;
     if (amount != null) tx.amount = amount;
-    if (amountBtc != null) tx.amountBtc = amountBtc;
+    if (newAmountCrypto != null) tx.amountCrypto = newAmountCrypto;
     if (price != null) tx.price = price;
     if (fee != null) tx.fee = fee;
     if (date != null) tx.date = date;
@@ -278,17 +338,22 @@ router.delete("/transaction/:id", async (req, res) => {
   }
 });
 
-// GET /api/portfolio/export — CSV export of all transactions
-router.get("/export", async (_req, res) => {
+// GET /api/portfolio/export — CSV export of transactions
+router.get("/export", async (req, res) => {
   try {
     const portfolio = await loadPortfolio();
-    const txs = portfolio.transactions ?? [];
+    let txs = portfolio.transactions ?? [];
     const currency = portfolio.settings?.homeCurrency ?? "USD";
 
+    const assetFilter = req.query.asset;
+    if (assetFilter) {
+      txs = txs.filter((t) => (t.asset ?? DEFAULT_ASSET) === assetFilter);
+    }
+
     const header =
-      "Date,Type,Amount (" +
+      "Date,Asset,Type,Amount (" +
       currency +
-      "),BTC Amount,Price per BTC (" +
+      "),Crypto Amount,Price per Unit (" +
       currency +
       "),Fee (" +
       currency +
@@ -298,17 +363,20 @@ router.get("/export", async (_req, res) => {
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((t) => {
         const amt = t.amount ?? t.amountLocal ?? t.amountUsd ?? 0;
+        const cryptoAmt = t.amountCrypto ?? t.amountBtc ?? 0;
         const price =
           t.price ??
-          (t.amountLocal && t.amountBtc ? t.amountLocal / t.amountBtc : 0);
+          (t.amountLocal && cryptoAmt ? t.amountLocal / cryptoAmt : 0);
         const fee = t.fee ?? t.feeLocal ?? t.feeUsd ?? 0;
         const notes = (t.notes ?? "").replace(/"/g, '""');
         const platform = (t.platform ?? "").replace(/"/g, '""');
+        const asset = t.asset ?? DEFAULT_ASSET;
         return [
           t.date,
+          asset,
           t.type,
           amt.toFixed(2),
-          t.amountBtc.toFixed(8),
+          cryptoAmt.toPrecision(8),
           price.toFixed(2),
           fee.toFixed(2),
           t.currency ?? currency,
@@ -322,7 +390,7 @@ router.get("/export", async (_req, res) => {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="btc-transactions-${new Date().toISOString().split("T")[0]}.csv"`,
+      `attachment; filename="crypto-transactions-${new Date().toISOString().split("T")[0]}.csv"`,
     );
     res.send(csv);
   } catch (err) {
@@ -344,6 +412,10 @@ router.post("/reset", async (req, res) => {
       homeCurrency: newCurrency,
       initialCapital: 0,
       mode: portfolio.settings?.mode ?? "dca",
+      taxSettings: portfolio.settings?.taxSettings ?? {
+        marginalTaxRate: 0.325,
+        exchangeFeeRate: 0.006,
+      },
     };
     portfolio.transactions = [];
     await savePortfolio(portfolio);

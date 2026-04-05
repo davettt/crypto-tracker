@@ -1,18 +1,24 @@
 # Crypto Tracker
 
-BTC market tracker with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, and tracks your portfolio.
+Multi-asset crypto tracker with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
 
 ## Features
 
+- **Multi-asset**: BTC, ETH, SOL, RENDER with tab navigation
 - Price chart with 200-day MA overlay
 - Weekly RSI chart with overbought/oversold zones
-- Buy/sell signals: Weekly RSI, 200-Day MA, Mayer Multiple, ATH Drawdown, Fear & Greed
-- Position calculator with DCA and Lump Sum modes
-- Portfolio tracker with transaction history and P&L
+- Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown
+- Fear & Greed Index (Bitcoin-specific)
+- Position calculator with DCA and Lump Sum modes, all-asset portfolio value
+- Portfolio tracker with transaction history, edit, and P&L per asset
+- FIFO cost basis engine with automatic lot matching
+- Australian tax report: FY summary, CGT with 50% discount for >12 month holdings, CSV export
+- Target sell price calculator factoring in exchange fees and tax rates
+- CoinSpot CSV import with duplicate detection
 - Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
 - Display currency toggle to view market data in any supported currency
 - Transaction amounts stored in home currency — no exchange rate drift
-- CSV export for tax records
+- CSV export for tax records and transactions
 - Persistent price history (accumulates over time for future 200-week MA)
 
 ## Setup
@@ -60,9 +66,9 @@ npm run security # npm audit
 
 All data is stored locally in `local_data/` (gitignored):
 
-- `price_cache.json` — 4-hour API response cache
-- `price_history.json` — persistent daily price history (grows over time)
-- `portfolio.json` — investment pool settings and transactions
+- `price_cache_{asset}.json` — 4-hour API response cache per asset
+- `price_history_{asset}.json` — persistent daily price history per asset (grows over time)
+- `portfolio.json` — investment pool settings, transactions, and tax settings
 
 ## Personal Project Notice
 

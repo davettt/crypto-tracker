@@ -167,7 +167,7 @@ export default function SignalPanel({
 }: {
   signals: Signal[];
   overall: Overall;
-  fearGreed: FearGreed;
+  fearGreed: FearGreed | null;
 }) {
   const overallBg =
     overall.action.includes("BUY") || overall.action === "ACCUMULATE"
@@ -194,7 +194,7 @@ export default function SignalPanel({
         </div>
       </div>
 
-      <FearGreedGauge data={fearGreed} />
+      {fearGreed && <FearGreedGauge data={fearGreed} />}
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">

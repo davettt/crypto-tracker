@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0] - 2026-04-06
+
+### Added
+
+- Multi-asset support: BTC, ETH, SOL, RENDER with tab navigation
+- Asset-specific price data, charts, signals from CoinGecko
+- Fear & Greed Index shown for BTC only (it's a Bitcoin-specific index)
+- CoinSpot CSV import with preview, duplicate detection, and confirm flow
+- FIFO cost basis engine — automatic lot matching for sells against oldest buys
+- Australian tax report: FY selector (July-June), CGT summary with 50% discount for holdings >12 months, disposals table, CSV export
+- Tax settings: marginal tax rate (AU brackets) and exchange fee rate with common platform rates listed
+- Target sell price calculator: shows prices needed for 15-30% net gain after fees and tax, split by short-term vs long-term holdings
+- Transaction edit and platform field support
+- Per-asset portfolio tracking with dynamic decimal formatting
+
+### Changed
+
+- Title: "BTC Market Tracker" → "Crypto Tracker"
+- Position calculator now shows all-asset combined crypto value and total portfolio value
+- Remaining cash tracks buys/sells across all assets, shows "over-deployed" when negative
+- Price formatting: adaptive decimals based on price magnitude (2dp under $10, 1dp under $1,000, 0dp above)
+- 200-day MA chart line: removed confusing horizontal last-value marker
+- CoinGecko rate limiting improved: 4s gap, global sequential queue, 429 retry with 30s backoff, request deduplication
+- JSON body limit increased to 2MB for CSV import
+- Data files now per-asset: `price_cache_bitcoin.json`, `price_history_bitcoin.json`, etc.
+
+### Migration
+
+- Existing transactions auto-migrate: `asset: 'bitcoin'` and `amountCrypto` fields added
+- Old `price_cache.json` / `price_history.json` auto-renamed to bitcoin-prefixed versions
+
 ## [1.1.0] - 2026-04-04
 
 ### Added

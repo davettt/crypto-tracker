@@ -1,11 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { ASSET_IDS } from "./assets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, "../local_data");
-const CACHE_FILE = path.join(CACHE_DIR, "price_cache.json");
-const HISTORY_FILE = path.join(CACHE_DIR, "price_history.json");
 
 // CoinGecko free API — no key needed, 10-30 calls/min
 const BASE = "https://api.coingecko.com/api/v3";
@@ -13,13 +12,47 @@ const FOUR_HOURS = 4 * 60 * 60 * 1000;
 
 // In-memory cache for all API responses (survives across requests, clears on restart)
 const memCache = {};
-// In-flight request deduplication — prevents concurrent cache-miss requests to the same URL
+// In-flight request deduplication
 const inflight = {};
 
-async function fetchJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`CoinGecko ${res.status}: ${res.statusText}`);
-  return res.json();
+// Sequential request queue — 4s gap between actual HTTP requests
+// CoinGecko free tier allows 10-30 req/min; 4s keeps us well under
+let lastRequestAt = 0;
+const REQUEST_GAP = 4000;
+const MAX_RETRIES = 2;
+const RETRY_BACKOFF = 30000; // 30s wait on 429
+
+// Global request queue to prevent parallel HTTP calls
+let requestQueue = Promise.resolve();
+
+async function rateLimitedFetch(url) {
+  // Chain onto queue so requests are truly sequential
+  const result = requestQueue.then(async () => {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const now = Date.now();
+      const wait = Math.max(0, lastRequestAt + REQUEST_GAP - now);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      lastRequestAt = Date.now();
+
+      const res = await fetch(url);
+      if (res.status === 429) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(
+            `CoinGecko 429 — retry ${attempt + 1}/${MAX_RETRIES} in ${RETRY_BACKOFF / 1000}s`,
+          );
+          await new Promise((r) => setTimeout(r, RETRY_BACKOFF));
+          continue;
+        }
+        throw new Error("CoinGecko rate limit exceeded — try again later");
+      }
+      if (!res.ok)
+        throw new Error(`CoinGecko ${res.status}: ${res.statusText}`);
+      return res.json();
+    }
+  });
+  // Update queue reference so next caller chains after this one
+  requestQueue = result.catch(() => {});
+  return result;
 }
 
 async function fetchJsonCached(url) {
@@ -28,7 +61,7 @@ async function fetchJsonCached(url) {
     return cached.data;
   }
   if (inflight[url]) return inflight[url];
-  const promise = fetchJson(url)
+  const promise = rateLimitedFetch(url)
     .then((data) => {
       memCache[url] = { data, at: Date.now() };
       delete inflight[url];
@@ -42,44 +75,80 @@ async function fetchJsonCached(url) {
   return promise;
 }
 
-async function loadCache() {
+// Per-asset file paths
+function cacheFile(coinId) {
+  return path.join(CACHE_DIR, `price_cache_${coinId}.json`);
+}
+function historyFile(coinId) {
+  return path.join(CACHE_DIR, `price_history_${coinId}.json`);
+}
+
+async function loadCache(coinId) {
   try {
-    const raw = await fs.readFile(CACHE_FILE, "utf8");
+    const raw = await fs.readFile(cacheFile(coinId), "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-async function saveCache(data) {
+async function saveCache(coinId, data) {
   await fs.mkdir(CACHE_DIR, { recursive: true });
-  await fs.writeFile(CACHE_FILE, JSON.stringify(data));
+  await fs.writeFile(cacheFile(coinId), JSON.stringify(data));
 }
 
-/**
- * Load the persistent price history (grows over time).
- * Keyed by date string for fast dedup/merge.
- */
-async function loadHistory() {
+async function loadHistory(coinId) {
   try {
-    const raw = await fs.readFile(HISTORY_FILE, "utf8");
+    const raw = await fs.readFile(historyFile(coinId), "utf8");
     return JSON.parse(raw);
   } catch {
     return {};
   }
 }
 
-async function saveHistory(history) {
+async function saveHistory(coinId, history) {
   await fs.mkdir(CACHE_DIR, { recursive: true });
-  await fs.writeFile(HISTORY_FILE, JSON.stringify(history));
+  await fs.writeFile(historyFile(coinId), JSON.stringify(history));
 }
+
+/** Migrate old non-prefixed files to bitcoin-prefixed */
+async function migrateOldFiles() {
+  const oldCache = path.join(CACHE_DIR, "price_cache.json");
+  const oldHistory = path.join(CACHE_DIR, "price_history.json");
+  try {
+    await fs.access(oldCache);
+    const newCache = cacheFile("bitcoin");
+    try {
+      await fs.access(newCache);
+    } catch {
+      await fs.rename(oldCache, newCache);
+      console.log("Migrated price_cache.json → price_cache_bitcoin.json");
+    }
+  } catch {
+    /* no old file */
+  }
+  try {
+    await fs.access(oldHistory);
+    const newHistory = historyFile("bitcoin");
+    try {
+      await fs.access(newHistory);
+    } catch {
+      await fs.rename(oldHistory, newHistory);
+      console.log("Migrated price_history.json → price_history_bitcoin.json");
+    }
+  } catch {
+    /* no old file */
+  }
+}
+
+// Run migration on import
+migrateOldFiles().catch(() => {});
 
 /**
  * Merge new prices into persistent history and return the full timeline.
- * History is { "2024-01-15": { price: 42000, timestamp: ... }, ... }
  */
-async function mergeIntoHistory(freshPrices) {
-  const history = await loadHistory();
+async function mergeIntoHistory(coinId, freshPrices) {
+  const history = await loadHistory(coinId);
   let added = 0;
 
   for (const p of freshPrices) {
@@ -90,54 +159,62 @@ async function mergeIntoHistory(freshPrices) {
   }
 
   if (added > 0) {
-    await saveHistory(history);
+    await saveHistory(coinId, history);
     console.log(
-      `Price history: added ${added} days, total ${Object.keys(history).length} days`,
+      `${coinId} history: added ${added} days, total ${Object.keys(history).length} days`,
     );
   }
 
-  // Return sorted array
   return Object.entries(history)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, { price, timestamp }]) => ({ date, price, timestamp }));
 }
 
 /**
- * Fetch BTC price history (daily) for the last 365 days.
- * Merges into persistent history file to accumulate multi-year data.
- * CoinGecko API response cached for 4 hours.
+ * Fetch price history (daily) for the last 365 days for any coin.
  */
-export async function getBtcPriceHistory() {
-  const cache = await loadCache();
+const historyInflight = {};
+
+export async function getPriceHistory(coinId = "bitcoin") {
+  const cache = await loadCache(coinId);
 
   if (cache && Date.now() - cache.fetchedAt < FOUR_HOURS) {
-    // Still merge cached API data with history (in case history was cleared)
-    return mergeIntoHistory(cache.data);
+    return mergeIntoHistory(coinId, cache.data);
   }
 
-  const data = await fetchJson(
-    `${BASE}/coins/bitcoin/market_chart?vs_currency=usd&days=365`,
-  );
+  // Deduplicate concurrent requests for the same coin
+  if (historyInflight[coinId]) return historyInflight[coinId];
 
-  const prices = data.prices.map(([ts, price]) => ({
-    date: new Date(ts).toISOString().split("T")[0],
-    timestamp: ts,
-    price,
-  }));
+  const promise = (async () => {
+    const data = await rateLimitedFetch(
+      `${BASE}/coins/${coinId}/market_chart?vs_currency=usd&days=365`,
+    );
 
-  await saveCache({ data: prices, fetchedAt: Date.now() });
+    const prices = data.prices.map(([ts, price]) => ({
+      date: new Date(ts).toISOString().split("T")[0],
+      timestamp: ts,
+      price,
+    }));
 
-  // Merge into growing history and return full timeline
-  return mergeIntoHistory(prices);
+    await saveCache(coinId, { data: prices, fetchedAt: Date.now() });
+
+    return mergeIntoHistory(coinId, prices);
+  })();
+
+  historyInflight[coinId] = promise;
+  promise.finally(() => {
+    delete historyInflight[coinId];
+  });
+
+  return promise;
 }
 
 /**
- * Fetch current BTC data (price, ATH, market cap).
- * Returns values in the specified home currency, plus USD for signal calculations.
+ * Fetch current coin data (price, ATH, market cap).
  */
-export async function getBtcCurrent(homeCurrency = "usd") {
+export async function getCoinCurrent(coinId = "bitcoin", homeCurrency = "usd") {
   const data = await fetchJsonCached(
-    `${BASE}/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false`,
+    `${BASE}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`,
   );
   const hc = homeCurrency.toLowerCase();
   const md = data.market_data;
@@ -158,7 +235,7 @@ export async function getBtcCurrent(homeCurrency = "usd") {
 }
 
 /**
- * Fetch Fear & Greed Index (alternative.me)
+ * Fetch Fear & Greed Index (alternative.me) — Bitcoin-specific
  */
 export async function getFearGreedIndex() {
   const url = "https://api.alternative.me/fng/?limit=30";
@@ -182,18 +259,21 @@ export async function getFearGreedIndex() {
 
 /**
  * Get exchange rates relative to the home currency.
- * Uses BTC prices in both currencies to derive the cross rate.
+ * Fetches prices for all tracked coins in one call.
  */
 export async function getExchangeRates(homeCurrency = "usd") {
   const currencies = "usd,aud,gbp,eur,jpy,nzd,sgd,cad";
+  const coinIds = ASSET_IDS.join(",");
   const data = await fetchJsonCached(
-    `${BASE}/simple/price?ids=bitcoin&vs_currencies=${currencies}`,
+    `${BASE}/simple/price?ids=${coinIds}&vs_currencies=${currencies}`,
   );
   const hc = homeCurrency.toLowerCase();
-  const homePrice = data.bitcoin[hc] ?? data.bitcoin.usd;
-  const usdPrice = data.bitcoin.usd;
+  // Derive USD-to-home rate from bitcoin prices (most liquid)
+  const btcData = data.bitcoin ?? {};
+  const homePrice = btcData[hc] ?? btcData.usd ?? 1;
+  const usdPrice = btcData.usd ?? 1;
   return {
     usdToHome: homePrice / usdPrice,
-    btcPrices: data.bitcoin,
+    coinPrices: data,
   };
 }

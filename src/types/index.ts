@@ -1,4 +1,56 @@
-export interface BtcCurrent {
+// --- Asset types ---
+
+export type AssetId = "bitcoin" | "ethereum" | "solana" | "render-token";
+
+export interface AssetConfig {
+  id: AssetId;
+  symbol: string;
+  name: string;
+  decimals: number;
+  fearGreed: boolean;
+}
+
+export const ASSETS: Record<AssetId, AssetConfig> = {
+  bitcoin: {
+    id: "bitcoin",
+    symbol: "BTC",
+    name: "Bitcoin",
+    decimals: 8,
+    fearGreed: true,
+  },
+  ethereum: {
+    id: "ethereum",
+    symbol: "ETH",
+    name: "Ethereum",
+    decimals: 6,
+    fearGreed: false,
+  },
+  solana: {
+    id: "solana",
+    symbol: "SOL",
+    name: "Solana",
+    decimals: 4,
+    fearGreed: false,
+  },
+  "render-token": {
+    id: "render-token",
+    symbol: "RENDER",
+    name: "Render",
+    decimals: 4,
+    fearGreed: false,
+  },
+};
+
+export const ASSET_LIST: AssetId[] = [
+  "bitcoin",
+  "ethereum",
+  "solana",
+  "render-token",
+];
+
+// --- Market data types ---
+
+export interface CoinCurrent {
   price: number;
   priceUsd: number;
   ath: number;
@@ -12,6 +64,9 @@ export interface BtcCurrent {
   priceChange7d: number;
   priceChange30d: number;
 }
+
+/** @deprecated Use CoinCurrent */
+export type BtcCurrent = CoinCurrent;
 
 export interface FearGreed {
   value: number;
@@ -34,17 +89,18 @@ export interface Overall {
 
 export interface ExchangeRates {
   usdToHome: number;
-  btcPrices: Record<string, number>;
+  coinPrices: Record<string, Record<string, number>>;
 }
 
 export interface MarketOverview {
-  current: BtcCurrent;
-  fearGreed: FearGreed;
+  current: CoinCurrent;
+  fearGreed: FearGreed | null;
   fearGreedHistory: FearGreed[];
   signals: Signal[];
   overall: Overall;
   exchangeRates: ExchangeRates;
   homeCurrency: Currency;
+  asset: AssetId;
 }
 
 export interface DailyDataPoint {
@@ -64,6 +120,8 @@ export interface ChartData {
   daily: DailyDataPoint[];
   weekly: WeeklyDataPoint[];
 }
+
+// --- Currency types ---
 
 export type Currency =
   | "USD"
@@ -97,11 +155,14 @@ export const CURRENCIES: Currency[] = [
   "CAD",
 ];
 
+// --- Transaction / Portfolio types ---
+
 export interface Transaction {
   id: string;
   type: "buy" | "sell";
+  asset: AssetId;
   amount?: number;
-  amountBtc: number;
+  amountCrypto: number;
   price?: number;
   fee?: number;
   currency: Currency;
@@ -111,10 +172,16 @@ export interface Transaction {
   feeUsd?: number;
   feeLocal?: number;
   amountLocal?: number;
+  amountBtc?: number;
   date: string;
   notes: string;
   platform: string;
   createdAt: string;
+}
+
+export interface TaxSettings {
+  marginalTaxRate: number;
+  exchangeFeeRate: number;
 }
 
 export interface PortfolioSettings {
@@ -123,6 +190,7 @@ export interface PortfolioSettings {
   initialCapitalUsd?: number;
   needsCapitalConfirmation?: boolean;
   mode: "dca" | "lump";
+  taxSettings?: TaxSettings;
 }
 
 export interface Portfolio {

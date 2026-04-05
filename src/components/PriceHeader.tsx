@@ -1,8 +1,12 @@
-import type { BtcCurrent, Currency, ExchangeRates } from "../types";
-import { CURRENCY_SYMBOLS } from "../types";
+import type { CoinCurrent, Currency, ExchangeRates, AssetId } from "../types";
+import { ASSETS, CURRENCY_SYMBOLS } from "../types";
 
 function fmt(n: number) {
-  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const decimals = Math.abs(n) < 10 ? 2 : Math.abs(n) < 1000 ? 1 : 0;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 }
 
 function pct(n: number) {
@@ -21,19 +25,19 @@ export default function PriceHeader({
   displayCurrency,
   homeCurrency,
   exchangeRates,
+  activeAsset,
 }: {
-  data: BtcCurrent;
+  data: CoinCurrent;
   displayCurrency: Currency;
   homeCurrency: Currency;
   exchangeRates: ExchangeRates;
+  activeAsset: AssetId;
 }) {
-  // data.price is in homeCurrency. Convert to displayCurrency if different.
+  const assetConfig = ASSETS[activeAsset];
   const dc = displayCurrency.toLowerCase();
   const hc = homeCurrency.toLowerCase();
-  const rate =
-    dc === hc
-      ? 1
-      : (exchangeRates.btcPrices[dc] ?? 1) / (exchangeRates.btcPrices[hc] ?? 1);
+  const assetPrices = exchangeRates.coinPrices[activeAsset] ?? {};
+  const rate = dc === hc ? 1 : (assetPrices[dc] ?? 1) / (assetPrices[hc] ?? 1);
 
   const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
   const price = data.price * rate;
@@ -42,12 +46,14 @@ export default function PriceHeader({
   const low = data.low24h * rate;
   const marketCap = data.marketCap * rate;
 
-  // Show home currency as secondary if display differs
   const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
   const showSecondary = displayCurrency !== homeCurrency;
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
+        {assetConfig.name} ({assetConfig.symbol})
+      </div>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 className="text-3xl font-bold text-gray-900">
           {symbol}

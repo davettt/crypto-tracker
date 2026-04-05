@@ -5,19 +5,22 @@ import {
   AreaSeries,
   LineSeries,
 } from "lightweight-charts";
-import type { ChartData, Currency, ExchangeRates } from "../types";
-import { CURRENCY_SYMBOLS } from "../types";
+import type { ChartData, Currency, ExchangeRates, AssetId } from "../types";
+import { ASSETS, CURRENCY_SYMBOLS } from "../types";
 
 export default function PriceChart({
   data,
   displayCurrency,
   exchangeRates,
+  activeAsset,
 }: {
   data: ChartData;
   displayCurrency: Currency;
   exchangeRates: ExchangeRates;
+  activeAsset: AssetId;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const assetConfig = ASSETS[activeAsset];
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,8 +28,9 @@ export default function PriceChart({
 
     // Chart data is in USD; convert to display currency
     const dc = displayCurrency.toLowerCase();
-    const usdPrice = exchangeRates.btcPrices["usd"] ?? 1;
-    const dcPrice = exchangeRates.btcPrices[dc] ?? usdPrice;
+    const assetPrices = exchangeRates.coinPrices[activeAsset] ?? {};
+    const usdPrice = assetPrices["usd"] ?? 1;
+    const dcPrice = assetPrices[dc] ?? usdPrice;
     const rate = dcPrice / usdPrice;
 
     const chart = createChart(container, {
@@ -59,6 +63,8 @@ export default function PriceChart({
       color: "#f59e0b",
       lineWidth: 2,
       lineStyle: 2,
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
 
     priceSeries.setData(
@@ -87,7 +93,7 @@ export default function PriceChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, displayCurrency, exchangeRates]);
+  }, [data, displayCurrency, exchangeRates, activeAsset]);
 
   const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
 
@@ -95,7 +101,7 @@ export default function PriceChart({
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-4">
         <h3 className="text-sm font-semibold text-gray-700">
-          BTC/{displayCurrency}
+          {assetConfig.symbol}/{displayCurrency}
         </h3>
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="flex items-center gap-1">

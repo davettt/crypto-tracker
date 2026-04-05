@@ -5,8 +5,10 @@ import type {
   Currency,
   Transaction,
   PortfolioSettings,
+  AssetId,
+  MarketOverview,
 } from "../types";
-import { CURRENCIES, CURRENCY_SYMBOLS } from "../types";
+import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from "../types";
 
 type Mode = "dca" | "lump";
 
@@ -48,6 +50,10 @@ function fmt(n: number, decimals = 0) {
   });
 }
 
+function getCryptoAmount(t: Transaction): number {
+  return t.amountCrypto ?? t.amountBtc ?? 0;
+}
+
 export default function PositionCalculator({
   overall,
   signals,
@@ -56,6 +62,8 @@ export default function PositionCalculator({
   symbol,
   transactions,
   settings,
+  activeAsset,
+  overviewByAsset,
   onSettingsChange,
   onHomeCurrencyChange,
 }: {
@@ -66,15 +74,21 @@ export default function PositionCalculator({
   symbol: string;
   transactions: Transaction[];
   settings: PortfolioSettings | null;
+  activeAsset: AssetId;
+  overviewByAsset: Partial<Record<AssetId, MarketOverview>>;
   onSettingsChange: () => void;
   onHomeCurrencyChange: (c: string) => void;
 }) {
   const [editingCapital, setEditingCapital] = useState(false);
   const [capitalInput, setCapitalInput] = useState("");
-  const [holdingsBtc, setHoldingsBtc] = useState("");
+  const [holdingsInput, setHoldingsInput] = useState("");
   const [showCurrencyReset, setShowCurrencyReset] = useState(false);
   const [pendingCurrency, setPendingCurrency] = useState("");
   const [confirmText, setConfirmText] = useState("");
+
+  const assetConfig = ASSETS[activeAsset];
+  const assetSymbol = assetConfig.symbol;
+  const assetDecimals = assetConfig.decimals;
 
   async function saveSettings(updates: Partial<PortfolioSettings>) {
     await fetch("/api/portfolio/settings", {
@@ -92,7 +106,6 @@ export default function PositionCalculator({
   const needsConfirmation =
     settings.needsCapitalConfirmation && initialCapital > 0;
 
-  // Show confirmation prompt if migrated from USD storage
   if (needsConfirmation && !editingCapital) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -130,7 +143,7 @@ export default function PositionCalculator({
     );
   }
 
-  // Compute remaining cash using amountLocal (home currency canonical)
+  // Compute remaining cash using ALL transactions across all assets
   const totalBought = transactions
     .filter((t) => t.type === "buy")
     .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
@@ -139,18 +152,38 @@ export default function PositionCalculator({
     .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
   const remainingCash = initialCapital - totalBought + totalSold;
 
-  // BTC holdings value in home currency
-  const totalBoughtBtc = transactions
+  // Current asset holdings (filtered to active asset)
+  const assetTxs = transactions.filter(
+    (t) => (t.asset ?? "bitcoin") === activeAsset,
+  );
+  const totalBoughtCrypto = assetTxs
     .filter((t) => t.type === "buy")
-    .reduce((s, t) => s + t.amountBtc, 0);
-  const totalSoldBtc = transactions
+    .reduce((s, t) => s + getCryptoAmount(t), 0);
+  const totalSoldCrypto = assetTxs
     .filter((t) => t.type === "sell")
-    .reduce((s, t) => s + t.amountBtc, 0);
-  const btcHoldings = totalBoughtBtc - totalSoldBtc;
-  const btcValue = btcHoldings * currentPrice;
+    .reduce((s, t) => s + getCryptoAmount(t), 0);
+  const cryptoHoldings = totalBoughtCrypto - totalSoldCrypto;
+  const cryptoValue = cryptoHoldings * currentPrice;
 
-  // Total value = remaining cash + BTC value
-  const totalValue = remainingCash + btcValue;
+  // Total crypto value across all assets
+  let allCryptoValue = 0;
+  for (const assetId of ASSET_LIST) {
+    const overview = overviewByAsset[assetId];
+    if (!overview) continue;
+    const assetPrice = overview.current.price;
+    const assetTxsAll = transactions.filter(
+      (t) => (t.asset ?? "bitcoin") === assetId,
+    );
+    const bought = assetTxsAll
+      .filter((t) => t.type === "buy")
+      .reduce((s, t) => s + getCryptoAmount(t), 0);
+    const sold = assetTxsAll
+      .filter((t) => t.type === "sell")
+      .reduce((s, t) => s + getCryptoAmount(t), 0);
+    allCryptoValue += (bought - sold) * assetPrice;
+  }
+
+  const totalValue = remainingCash + allCryptoValue;
   const totalPnl = totalValue - initialCapital;
   const totalPnlPct =
     initialCapital > 0 ? (totalPnl / initialCapital) * 100 : 0;
@@ -169,7 +202,7 @@ export default function PositionCalculator({
   ).length;
   const buyCount = signals.filter((s) => s.type === "buy").length;
 
-  const holdingsNum = parseFloat(holdingsBtc) || btcHoldings;
+  const holdingsNum = parseFloat(holdingsInput) || cryptoHoldings;
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -318,14 +351,17 @@ export default function PositionCalculator({
             </div>
             <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p className="text-xs text-gray-400">Initial</p>
+                <p className="text-xs text-gray-400">Initial pool</p>
                 <p className="font-medium text-gray-700">
                   {symbol}
                   {fmt(initialCapital)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400">Remaining cash</p>
+                <p className="text-xs text-gray-400">
+                  Remaining cash
+                  {remainingCash < 0 ? " (over-deployed)" : ""}
+                </p>
                 <p
                   className={`font-medium ${remainingCash < 0 ? "text-red-600" : "text-gray-700"}`}
                 >
@@ -334,10 +370,10 @@ export default function PositionCalculator({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400">BTC value</p>
+                <p className="text-xs text-gray-400">All crypto value</p>
                 <p className="font-medium text-gray-700">
                   {symbol}
-                  {fmt(btcValue)}
+                  {fmt(allCryptoValue)}
                 </p>
               </div>
               <div>
@@ -348,6 +384,13 @@ export default function PositionCalculator({
                 </p>
               </div>
             </div>
+            {allCryptoValue !== cryptoValue && cryptoValue > 0 && (
+              <p className="mt-1 text-xs text-gray-400">
+                {assetSymbol}: {symbol}
+                {fmt(cryptoValue)} of {symbol}
+                {fmt(allCryptoValue)} total
+              </p>
+            )}
             {initialCapital > 0 && (
               <div className="mt-2 flex items-center gap-2">
                 <div className="h-1.5 flex-1 rounded-full bg-gray-200">
@@ -435,7 +478,7 @@ export default function PositionCalculator({
         </div>
       )}
 
-      {/* Buy suggestions based on remaining cash */}
+      {/* Buy suggestions */}
       {isBuySide && remainingCash > 0 && buyAllocs && (
         <div className="mt-4 space-y-2">
           <p className="text-xs text-gray-500">
@@ -448,7 +491,7 @@ export default function PositionCalculator({
           </p>
           {buyAllocs.map((pct, i) => {
             const amount = remainingCash * pct;
-            const btcAmount = amount / currentPrice;
+            const cryptoAmount = amount / currentPrice;
             const buysRemaining = pct > 0 ? Math.floor(1 / pct) : Infinity;
             return (
               <div
@@ -469,7 +512,7 @@ export default function PositionCalculator({
                     {fmt(amount)}
                   </span>
                   <span className="text-sm text-gray-500">
-                    = {fmt(btcAmount, 6)} BTC
+                    = {fmt(cryptoAmount, assetDecimals)} {assetSymbol}
                   </span>
                 </div>
                 {pct === 0 ? (
@@ -503,20 +546,21 @@ export default function PositionCalculator({
       {/* Sell suggestions */}
       {!isBuySide && (
         <div className="mt-4 space-y-3">
-          {btcHoldings > 0 ? (
+          {cryptoHoldings > 0 ? (
             <p className="text-xs text-gray-500">
-              Holdings: {fmt(btcHoldings, 6)} BTC ({symbol}
-              {fmt(btcValue)})
+              Holdings: {fmt(cryptoHoldings, assetDecimals)} {assetSymbol} (
+              {symbol}
+              {fmt(cryptoValue)})
             </p>
           ) : (
             <div>
               <label className="block text-xs font-medium text-gray-500">
-                Current BTC holdings
+                Current {assetSymbol} holdings
               </label>
               <input
                 type="number"
-                value={holdingsBtc}
-                onChange={(e) => setHoldingsBtc(e.target.value)}
+                value={holdingsInput}
+                onChange={(e) => setHoldingsInput(e.target.value)}
                 placeholder="e.g. 0.5"
                 step="0.001"
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-400"
@@ -530,8 +574,8 @@ export default function PositionCalculator({
                 Signal: <span className="font-medium">{overall.action}</span>
               </p>
               {sellAllocs.map((pct, i) => {
-                const btcToSell = holdingsNum * pct;
-                const valueInCurrency = btcToSell * currentPrice;
+                const cryptoToSell = holdingsNum * pct;
+                const valueInCurrency = cryptoToSell * currentPrice;
                 return (
                   <div
                     key={i}
@@ -547,7 +591,7 @@ export default function PositionCalculator({
                     </div>
                     <div className="mt-1 flex items-baseline gap-2">
                       <span className="text-lg font-bold text-gray-900">
-                        {fmt(btcToSell, 6)} BTC
+                        {fmt(cryptoToSell, assetDecimals)} {assetSymbol}
                       </span>
                       <span className="text-sm text-gray-500">
                         = {symbol}
