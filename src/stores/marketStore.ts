@@ -12,8 +12,8 @@ interface MarketState {
   setActiveAsset: (a: AssetId) => void;
   setDisplayCurrency: (c: Currency) => void;
   setHomeCurrency: (c: Currency) => void;
-  fetchOverview: (asset?: AssetId) => Promise<void>;
-  fetchChart: (asset?: AssetId) => Promise<void>;
+  fetchOverview: (asset?: AssetId, force?: boolean) => Promise<void>;
+  fetchChart: (asset?: AssetId, force?: boolean) => Promise<void>;
   // Convenience getters
   overview: MarketOverview | null;
   chartData: ChartData | null;
@@ -40,13 +40,13 @@ export const useMarketStore = create<MarketState>((set, get) => ({
   setHomeCurrency: (homeCurrency) =>
     set({ homeCurrency, displayCurrency: homeCurrency }),
 
-  fetchOverview: async (asset?: AssetId) => {
+  fetchOverview: async (asset?: AssetId, force?: boolean) => {
     const targetAsset = asset ?? get().activeAsset;
     set({ loading: true, error: null });
     try {
-      const res = await fetch(
-        `/api/market/overview?asset=${encodeURIComponent(targetAsset)}`,
-      );
+      const params = new URLSearchParams({ asset: targetAsset });
+      if (force) params.set("force", "true");
+      const res = await fetch(`/api/market/overview?${params}`);
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data: MarketOverview = await res.json();
       const hc = data.homeCurrency ?? "USD";
@@ -64,12 +64,12 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     }
   },
 
-  fetchChart: async (asset?: AssetId) => {
+  fetchChart: async (asset?: AssetId, force?: boolean) => {
     const targetAsset = asset ?? get().activeAsset;
     try {
-      const res = await fetch(
-        `/api/market/chart?asset=${encodeURIComponent(targetAsset)}`,
-      );
+      const params = new URLSearchParams({ asset: targetAsset });
+      if (force) params.set("force", "true");
+      const res = await fetch(`/api/market/chart?${params}`);
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data: ChartData = await res.json();
       set((state) => ({

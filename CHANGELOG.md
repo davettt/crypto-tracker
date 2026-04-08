@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.1.0] - 2026-04-08
+
+### Added
+
+- TRON (TRX) added as a 5th tracked asset — low-volatility, stablecoin-rails utility play
+- "Actual crypto received" override field on Add and Edit transaction forms — for exchanges like Revolut where the displayed price rounds but execution includes a spread. When set, the effective price is back-derived from `(amount − fee) / override` so FIFO cost basis matches the exchange statement exactly
+- Refresh button now bypasses the 4-hour cache via `?force=true` — clears in-memory and file caches for the active asset and fetches fresh data from CoinGecko. Normal page loads and tab switches still use the 4hr cache to respect rate limits
+- CoinSpot CSV import now recognises `TRX/AUD` market pair
+
+### Changed
+
+- Price chart's last data point now uses the live current price from the overview endpoint (not the possibly-stale daily close from CoinGecko's `market_chart`). The chart endpoint now fetches the current price alongside history and injects it as today's point so MA/Mayer/RSI indicators are computed against the latest price
+- PriceChart component accepts `currentPriceUsd` prop and overrides the last point's display value client-side, using the same conversion path as the header — eliminates the small discrepancy between chart's trailing point and the header price
+- Portfolio transaction rows use adaptive price formatting (`fmtPrice`) — shows 2 decimals for values under $10k, more for smaller-priced assets. Previously rounded to whole numbers, which hid sub-dollar precision from override-derived prices
+
+### Fixed
+
+- Chart's final data point no longer lags the live market price shown in the header
+
 ## [2.0.0] - 2026-04-06
 
 ### Added

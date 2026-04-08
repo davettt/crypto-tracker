@@ -10,6 +10,16 @@ function fmt(n: number, decimals = 0) {
   });
 }
 
+/** Adaptive price formatting: more decimals for smaller values */
+function fmtPrice(n: number) {
+  const abs = Math.abs(n);
+  const decimals = abs < 1 ? 4 : abs < 100 ? 3 : abs < 10000 ? 2 : 0;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
+
 /** Get the crypto amount from a transaction, handling legacy field names */
 function getCryptoAmount(t: Transaction): number {
   return t.amountCrypto ?? t.amountBtc ?? 0;
@@ -66,6 +76,7 @@ function AddTransactionForm({
   const [amount, setAmount] = useState("");
   const [fee, setFee] = useState("");
   const [price, setPrice] = useState("");
+  const [cryptoOverride, setCryptoOverride] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
   const [platform, setPlatform] = useState("");
@@ -74,8 +85,20 @@ function AddTransactionForm({
   const amountNum = parseFloat(amount) || 0;
   const feeNum = parseFloat(fee) || 0;
   const priceNum = parseFloat(price) || currentPrice;
+  const overrideNum = parseFloat(cryptoOverride) || 0;
   const effectiveAmount = type === "buy" ? amountNum - feeNum : amountNum;
-  const cryptoAmount = priceNum > 0 ? effectiveAmount / priceNum : 0;
+  // If override provided, use it and back-derive the effective price so
+  // FIFO/tax cost basis stays consistent (e.g. Revolut spread).
+  const cryptoAmount =
+    overrideNum > 0
+      ? overrideNum
+      : priceNum > 0
+        ? effectiveAmount / priceNum
+        : 0;
+  const effectivePrice =
+    overrideNum > 0 && effectiveAmount > 0
+      ? effectiveAmount / overrideNum
+      : priceNum;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +112,7 @@ function AddTransactionForm({
         asset: activeAsset,
         amount: amountNum,
         amountCrypto: cryptoAmount,
-        price: priceNum,
+        price: effectivePrice,
         fee: feeNum,
         currency: homeCurrency,
         date,
@@ -101,6 +124,7 @@ function AddTransactionForm({
     setAmount("");
     setFee("");
     setPrice("");
+    setCryptoOverride("");
     setNotes("");
     setPlatform("");
     setOpen(false);
@@ -179,6 +203,25 @@ function AddTransactionForm({
           className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
         />
       </div>
+      <div>
+        <label className="block text-xs text-gray-500">
+          Actual {assetSymbol} {type === "buy" ? "received" : "sold"} (optional
+          override)
+        </label>
+        <input
+          type="number"
+          value={cryptoOverride}
+          onChange={(e) => setCryptoOverride(e.target.value)}
+          placeholder="leave blank to auto-calculate"
+          step="any"
+          className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Use this when the exchange statement shows an exact {assetSymbol}{" "}
+          amount that differs from the price×amount calculation (e.g. Revolut
+          spread). Effective price will be back-calculated.
+        </p>
+      </div>
       {amountNum > 0 && (
         <div className="rounded bg-white p-2 text-xs text-gray-500">
           {type === "buy" ? (
@@ -191,14 +234,14 @@ function AddTransactionForm({
               </p>
               <p className="font-medium">
                 = {fmt(cryptoAmount, assetDecimals)} {assetSymbol} at {symbol}
-                {fmt(priceNum)}/{assetSymbol}
+                {fmtPrice(effectivePrice)}/{assetSymbol}
               </p>
             </>
           ) : (
             <>
               <p>
                 {fmt(cryptoAmount, assetDecimals)} {assetSymbol} at {symbol}
-                {fmt(priceNum)}/{assetSymbol}
+                {fmtPrice(effectivePrice)}/{assetSymbol}
               </p>
               <p className="font-medium">
                 = {symbol}
@@ -285,6 +328,9 @@ function TransactionRow({
   const [editAmount, setEditAmount] = useState(String(txAmount));
   const [editFee, setEditFee] = useState(String(txFee));
   const [editPrice, setEditPrice] = useState(String(txPrice));
+  const [editCryptoOverride, setEditCryptoOverride] = useState(
+    String(cryptoAmt),
+  );
   const [editDate, setEditDate] = useState(t.date);
   const [editPlatform, setEditPlatform] = useState(t.platform ?? "");
   const [editNotes, setEditNotes] = useState(t.notes);
@@ -293,15 +339,19 @@ function TransactionRow({
     const amount = parseFloat(editAmount) || 0;
     const fee = parseFloat(editFee) || 0;
     const price = parseFloat(editPrice) || 0;
+    const override = parseFloat(editCryptoOverride) || 0;
     const effectiveAmount = editType === "buy" ? amount - fee : amount;
-    const amountCrypto = price > 0 ? effectiveAmount / price : 0;
+    const amountCrypto =
+      override > 0 ? override : price > 0 ? effectiveAmount / price : 0;
+    const effectivePrice =
+      override > 0 && effectiveAmount > 0 ? effectiveAmount / override : price;
     if (amount <= 0 || amountCrypto <= 0) return;
 
     onEdit(t.id, {
       type: editType,
       amount,
       amountCrypto,
-      price,
+      price: effectivePrice,
       fee,
       date: editDate,
       platform: editPlatform,
@@ -366,6 +416,21 @@ function TransactionRow({
             />
           </div>
         </div>
+        <div>
+          <label className="block text-xs text-gray-400">
+            Actual {assetSymbol} amount (override)
+          </label>
+          <input
+            type="number"
+            value={editCryptoOverride}
+            onChange={(e) => setEditCryptoOverride(e.target.value)}
+            step="any"
+            className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+          />
+          <p className="mt-0.5 text-xs text-gray-400">
+            Blank/0 to re-calculate from price. Otherwise price is back-derived.
+          </p>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className="block text-xs text-gray-400">Date</label>
@@ -428,7 +493,7 @@ function TransactionRow({
           </span>
           <span className="text-xs text-gray-400">
             {fmt(cryptoAmt, assetDecimals)} {assetSymbol} @ {symbol}
-            {fmt(txPrice)}
+            {fmtPrice(txPrice)}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">

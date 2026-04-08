@@ -1,6 +1,11 @@
 // --- Asset types ---
 
-export type AssetId = "bitcoin" | "ethereum" | "solana" | "render-token";
+export type AssetId =
+  | "bitcoin"
+  | "ethereum"
+  | "solana"
+  | "render-token"
+  | "tron";
 
 export interface AssetConfig {
   id: AssetId;
@@ -39,6 +44,13 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     decimals: 4,
     fearGreed: false,
   },
+  tron: {
+    id: "tron",
+    symbol: "TRX",
+    name: "TRON",
+    decimals: 4,
+    fearGreed: false,
+  },
 };
 
 export const ASSET_LIST: AssetId[] = [
@@ -46,6 +58,7 @@ export const ASSET_LIST: AssetId[] = [
   "ethereum",
   "solana",
   "render-token",
+  "tron",
 ];
 
 // --- Market data types ---

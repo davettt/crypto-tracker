@@ -121,8 +121,8 @@ export default function App() {
               </div>
               <button
                 onClick={() => {
-                  void fetchOverview();
-                  void fetchChart();
+                  void fetchOverview(undefined, true);
+                  void fetchChart(undefined, true);
                 }}
                 disabled={loading}
                 className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
@@ -187,6 +187,7 @@ export default function App() {
                       displayCurrency={displayCurrency}
                       exchangeRates={overview.exchangeRates}
                       activeAsset={activeAsset}
+                      currentPriceUsd={overview.current.priceUsd}
                     />
                     <RsiChart data={chartData} />
                   </>

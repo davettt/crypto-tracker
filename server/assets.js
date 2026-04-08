@@ -32,6 +32,14 @@ export const ASSETS = {
     decimals: 4,
     fearGreed: false,
   },
+  tron: {
+    id: "tron",
+    symbol: "TRX",
+    name: "TRON",
+    coingeckoId: "tron",
+    decimals: 4,
+    fearGreed: false,
+  },
 };
 
 export const ASSET_IDS = Object.keys(ASSETS);

@@ -17,6 +17,7 @@ const MARKET_TO_ASSET = {
   "SOL/AUD": "solana",
   "RNDR/AUD": "render-token",
   "RENDER/AUD": "render-token",
+  "TRX/AUD": "tron",
 };
 
 /**

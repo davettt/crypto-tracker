@@ -1,10 +1,10 @@
 # Crypto Tracker
 
-Multi-asset crypto tracker with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
+Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
 
 ## Features
 
-- **Multi-asset**: BTC, ETH, SOL, RENDER with tab navigation
+- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX with tab navigation
 - Price chart with 200-day MA overlay
 - Weekly RSI chart with overbought/oversold zones
 - Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown
@@ -15,6 +15,8 @@ Multi-asset crypto tracker with buy/sell signals for long-term holders. Analyses
 - Australian tax report: FY summary, CGT with 50% discount for >12 month holdings, CSV export
 - Target sell price calculator factoring in exchange fees and tax rates
 - CoinSpot CSV import with duplicate detection
+- Actual crypto amount override on transaction forms — back-derives the effective price so FIFO cost basis matches exchange statements exactly (handles Revolut-style spread)
+- Refresh button bypasses the 4-hour cache for on-demand fresh prices; normal loads still use cache to respect rate limits
 - Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
 - Display currency toggle to view market data in any supported currency
 - Transaction amounts stored in home currency — no exchange rate drift

@@ -15,20 +15,32 @@ const memCache = {};
 // In-flight request deduplication
 const inflight = {};
 
-// Sequential request queue — 4s gap between actual HTTP requests
-// CoinGecko free tier allows 10-30 req/min; 4s keeps us well under
+// Sequential request queue — 6s gap between actual HTTP requests
+// CoinGecko free tier allows 10-30 req/min; 6s = max 10 req/min
 let lastRequestAt = 0;
-const REQUEST_GAP = 4000;
+const REQUEST_GAP = 6000;
 const MAX_RETRIES = 2;
-const RETRY_BACKOFF = 30000; // 30s wait on 429
+const RETRY_BACKOFF = 60000; // 60s wait on 429
 
 // Global request queue to prevent parallel HTTP calls
 let requestQueue = Promise.resolve();
+
+// Track 429 cooldown globally — if we got rate limited, pause everything
+let rateLimitedUntil = 0;
 
 async function rateLimitedFetch(url) {
   // Chain onto queue so requests are truly sequential
   const result = requestQueue.then(async () => {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // Respect global cooldown from prior 429
+      const cooldownWait = Math.max(0, rateLimitedUntil - Date.now());
+      if (cooldownWait > 0) {
+        console.warn(
+          `Rate limit cooldown: waiting ${Math.ceil(cooldownWait / 1000)}s`,
+        );
+        await new Promise((r) => setTimeout(r, cooldownWait));
+      }
+
       const now = Date.now();
       const wait = Math.max(0, lastRequestAt + REQUEST_GAP - now);
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
@@ -36,6 +48,8 @@ async function rateLimitedFetch(url) {
 
       const res = await fetch(url);
       if (res.status === 429) {
+        // Set global cooldown so all queued requests also wait
+        rateLimitedUntil = Date.now() + RETRY_BACKOFF;
         if (attempt < MAX_RETRIES) {
           console.warn(
             `CoinGecko 429 — retry ${attempt + 1}/${MAX_RETRIES} in ${RETRY_BACKOFF / 1000}s`,
@@ -50,7 +64,7 @@ async function rateLimitedFetch(url) {
       return res.json();
     }
   });
-  // Update queue reference so next caller chains after this one
+  // Update queue reference — always resolve so queue doesn't break on errors
   requestQueue = result.catch(() => {});
   return result;
 }
@@ -168,6 +182,24 @@ async function mergeIntoHistory(coinId, freshPrices) {
   return Object.entries(history)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, { price, timestamp }]) => ({ date, price, timestamp }));
+}
+
+/**
+ * Clear in-memory and file caches for a coin so next fetch hits CoinGecko.
+ */
+export async function invalidateCache(coinId) {
+  // Clear all memCache entries for this coin
+  for (const url of Object.keys(memCache)) {
+    if (url.includes(coinId)) {
+      delete memCache[url];
+    }
+  }
+  // Remove file-based price cache (history file kept — it only accumulates)
+  try {
+    await fs.unlink(cacheFile(coinId));
+  } catch {
+    /* no file */
+  }
 }
 
 /**

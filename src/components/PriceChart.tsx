@@ -13,11 +13,13 @@ export default function PriceChart({
   displayCurrency,
   exchangeRates,
   activeAsset,
+  currentPriceUsd,
 }: {
   data: ChartData;
   displayCurrency: Currency;
   exchangeRates: ExchangeRates;
   activeAsset: AssetId;
+  currentPriceUsd?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const assetConfig = ASSETS[activeAsset];
@@ -67,9 +69,14 @@ export default function PriceChart({
       priceLineVisible: false,
     });
 
-    priceSeries.setData(
-      data.daily.map((d) => ({ time: d.date, value: d.price * rate })),
-    );
+    const dailyData = data.daily.map((d, i) => ({
+      time: d.date,
+      value:
+        currentPriceUsd && i === data.daily.length - 1
+          ? currentPriceUsd * rate
+          : d.price * rate,
+    }));
+    priceSeries.setData(dailyData);
 
     ma200Series.setData(
       data.daily
@@ -93,7 +100,7 @@ export default function PriceChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, displayCurrency, exchangeRates, activeAsset]);
+  }, [data, displayCurrency, exchangeRates, activeAsset, currentPriceUsd]);
 
   const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
 

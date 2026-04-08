@@ -4,6 +4,7 @@ import {
   getCoinCurrent,
   getFearGreedIndex,
   getExchangeRates,
+  invalidateCache,
 } from "../coingecko.js";
 import {
   toWeekly,
@@ -25,6 +26,10 @@ router.get("/overview", async (req, res) => {
       return res.status(400).json({ error: "Unknown asset" });
     }
     const asset = ASSETS[assetId];
+
+    if (req.query.force === "true") {
+      await invalidateCache(assetId);
+    }
 
     const portfolio = await loadPortfolio();
     const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
@@ -75,15 +80,43 @@ router.get("/chart", async (req, res) => {
       return res.status(400).json({ error: "Unknown asset" });
     }
 
-    const dailyPrices = await getPriceHistory(assetId);
-    const weeklyPrices = toWeekly(dailyPrices);
+    if (req.query.force === "true") {
+      await invalidateCache(assetId);
+    }
 
-    const ma200d = sma(dailyPrices, 200);
+    const portfolio = await loadPortfolio();
+    const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
+
+    const [dailyPrices, current] = await Promise.all([
+      getPriceHistory(assetId),
+      getCoinCurrent(assetId, homeCurrency),
+    ]);
+
+    // Append live price as today's data point so chart matches header
+    const today = new Date().toISOString().split("T")[0];
+    const lastDay = dailyPrices[dailyPrices.length - 1];
+    const withLive =
+      lastDay && lastDay.date === today
+        ? dailyPrices.map((d) =>
+            d === lastDay ? { ...d, price: current.priceUsd } : d,
+          )
+        : [
+            ...dailyPrices,
+            {
+              date: today,
+              price: current.priceUsd,
+              timestamp: Date.now(),
+            },
+          ];
+
+    const weeklyPrices = toWeekly(withLive);
+
+    const ma200d = sma(withLive, 200);
     const weeklyRsi = rsi(weeklyPrices, 14);
-    const mayer = mayerMultiple(dailyPrices);
+    const mayer = mayerMultiple(withLive);
 
     res.json({
-      daily: dailyPrices.map((d, i) => ({
+      daily: withLive.map((d, i) => ({
         date: d.date,
         price: d.price,
         ma200: ma200d[i]?.value ?? null,
