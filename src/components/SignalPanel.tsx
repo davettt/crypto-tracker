@@ -1,5 +1,21 @@
 import { useState } from "react";
-import type { Signal, Overall, FearGreed } from "../types";
+import type {
+  Signal,
+  Overall,
+  FearGreed,
+  Currency,
+  ExchangeRates,
+  AssetId,
+} from "../types";
+import { CURRENCY_SYMBOLS } from "../types";
+
+function fmtMa(n: number): string {
+  const decimals = Math.abs(n) < 10 ? 2 : Math.abs(n) < 1000 ? 1 : 0;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+}
 
 const EXPLAINERS: Record<string, { what: string; why: string }> = {
   "Weekly RSI": {
@@ -28,7 +44,13 @@ const EXPLAINERS: Record<string, { what: string; why: string }> = {
   },
 };
 
-function SignalBadge({ signal }: { signal: Signal }) {
+function SignalBadge({
+  signal,
+  displayMessage,
+}: {
+  signal: Signal;
+  displayMessage: string;
+}) {
   const [showExplainer, setShowExplainer] = useState(false);
   const explainer = EXPLAINERS[signal.indicator];
 
@@ -72,7 +94,7 @@ function SignalBadge({ signal }: { signal: Signal }) {
         </button>
         <span className={`text-xs font-bold ${labelColor}`}>{label}</span>
       </div>
-      <p className="mt-1 text-sm text-gray-600">{signal.message}</p>
+      <p className="mt-1 text-sm text-gray-600">{displayMessage}</p>
       {showExplainer && explainer && (
         <div className="mt-3 space-y-2 rounded-md bg-white/60 p-3">
           <div>
@@ -164,11 +186,37 @@ export default function SignalPanel({
   signals,
   overall,
   fearGreed,
+  homeCurrency,
+  displayCurrency,
+  exchangeRates,
+  activeAsset,
 }: {
   signals: Signal[];
   overall: Overall;
   fearGreed: FearGreed | null;
+  homeCurrency: Currency;
+  displayCurrency: Currency;
+  exchangeRates: ExchangeRates;
+  activeAsset: AssetId;
 }) {
+  // MA values are computed natively in homeCurrency. Convert to displayCurrency
+  // only when the two differ; in the common case (display === home) there's no
+  // conversion and the value is exactly what the server computed.
+  const hc = homeCurrency.toLowerCase();
+  const dc = displayCurrency.toLowerCase();
+  const assetPrices = exchangeRates.coinPrices[activeAsset] ?? {};
+  const hcPrice = assetPrices[hc];
+  const dcPrice = assetPrices[dc];
+  const hcToDc = dc === hc || !hcPrice || !dcPrice ? 1 : dcPrice / hcPrice;
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
+
+  const renderMessage = (signal: Signal): string => {
+    if (signal.maValue == null) return signal.message;
+    const converted = signal.maValue * hcToDc;
+    const formatted = `(${symbol}${fmtMa(converted)})`;
+    return signal.message.replace("{ma}", formatted);
+  };
+
   const overallBg =
     overall.action.includes("BUY") || overall.action === "ACCUMULATE"
       ? "bg-green-50 border-green-300"
@@ -201,7 +249,11 @@ export default function SignalPanel({
           Indicators
         </h3>
         {signals.map((signal) => (
-          <SignalBadge key={signal.indicator} signal={signal} />
+          <SignalBadge
+            key={signal.indicator}
+            signal={signal}
+            displayMessage={renderMessage(signal)}
+          />
         ))}
       </div>
 

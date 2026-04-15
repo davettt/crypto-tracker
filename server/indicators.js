@@ -222,7 +222,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "strong",
         indicator: "200-Day MA",
         value: Math.round(latestMa200.value),
-        message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA ($${Math.round(latestMa200.value).toLocaleString()}). Deep value territory.`,
+        maValue: latestMa200.value,
+        message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA {ma}. Deep value territory.`,
       });
     } else if (pctAbove < 0) {
       signals.push({
@@ -230,7 +231,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "moderate",
         indicator: "200-Day MA",
         value: Math.round(latestMa200.value),
-        message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA. Below long-term trend.`,
+        maValue: latestMa200.value,
+        message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA {ma}. Below long-term trend.`,
       });
     } else {
       signals.push({
@@ -238,7 +240,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "none",
         indicator: "200-Day MA",
         value: Math.round(latestMa200.value),
-        message: `Price ${Math.round(pctAbove)}% above 200-day MA ($${Math.round(latestMa200.value).toLocaleString()}).`,
+        maValue: latestMa200.value,
+        message: `Price ${Math.round(pctAbove)}% above 200-day MA {ma}.`,
       });
     }
   }
@@ -253,7 +256,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "strong",
         indicator: "200-Week MA",
         value: Math.round(latestMa200w.value),
-        message: `Price BELOW 200-week MA ($${Math.round(latestMa200w.value).toLocaleString()})! Historically the best buy zone in Bitcoin's history.`,
+        maValue: latestMa200w.value,
+        message: `Price ${Math.abs(Math.round(pctAbove))}% BELOW 200-week MA {ma}! Historically the best buy zone in Bitcoin's history.`,
       });
     } else if (pctAbove < 50) {
       signals.push({
@@ -261,7 +265,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "moderate",
         indicator: "200-Week MA",
         value: Math.round(latestMa200w.value),
-        message: `Price ${Math.round(pctAbove)}% above 200-week MA ($${Math.round(latestMa200w.value).toLocaleString()}). Still relatively close to long-term support.`,
+        maValue: latestMa200w.value,
+        message: `Price ${Math.round(pctAbove)}% above 200-week MA {ma}. Still relatively close to long-term support.`,
       });
     } else {
       signals.push({
@@ -269,7 +274,8 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
         strength: "none",
         indicator: "200-Week MA",
         value: Math.round(latestMa200w.value),
-        message: `Price ${Math.round(pctAbove)}% above 200-week MA ($${Math.round(latestMa200w.value).toLocaleString()}).`,
+        maValue: latestMa200w.value,
+        message: `Price ${Math.round(pctAbove)}% above 200-week MA {ma}.`,
       });
     }
   }

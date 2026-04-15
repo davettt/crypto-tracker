@@ -1,11 +1,11 @@
 # Crypto Tracker
 
-Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
+Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, FET) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
 
 ## Features
 
-- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX with tab navigation
-- Price chart with 200-day MA overlay
+- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX, TAO, FET with tab navigation
+- Price chart with 200-day MA overlay and buy/sell transaction markers at historical entry prices
 - Weekly RSI chart with overbought/oversold zones
 - Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown
 - Fear & Greed Index (Bitcoin-specific)
@@ -78,9 +78,11 @@ npm run security # npm audit
 
 All data is stored locally in `local_data/` (gitignored):
 
-- `price_cache_{asset}.json` — 4-hour API response cache per asset
-- `price_history_{asset}.json` — persistent daily price history per asset (grows over time)
+- `price_cache_{asset}_{currency}.json` — 4-hour API response cache per (asset, currency) pair
+- `price_history_{asset}_{currency}.json` — persistent daily price history per (asset, currency) pair, fetched natively from CoinGecko in that currency (grows over time)
 - `portfolio.json` — investment pool settings, transactions, and tax settings
+
+Each `(asset, currency)` pair is fetched natively from CoinGecko (`vs_currency=<currency>`), so historical chart values, the 200-day MA, and transaction markers are all authentic historical prices in your home currency — not USD series converted through today's FX rate. Viewing the chart in a currency other than your home currency still applies today's FX to cross over, but the common case (display === home) is exact.
 
 ## Personal Project Notice
 

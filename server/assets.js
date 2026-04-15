@@ -40,6 +40,22 @@ export const ASSETS = {
     decimals: 4,
     fearGreed: false,
   },
+  bittensor: {
+    id: "bittensor",
+    symbol: "TAO",
+    name: "Bittensor",
+    coingeckoId: "bittensor",
+    decimals: 4,
+    fearGreed: false,
+  },
+  "fetch-ai": {
+    id: "fetch-ai",
+    symbol: "FET",
+    name: "Artificial Superintelligence Alliance",
+    coingeckoId: "fetch-ai",
+    decimals: 4,
+    fearGreed: false,
+  },
 };
 
 export const ASSET_IDS = Object.keys(ASSETS);

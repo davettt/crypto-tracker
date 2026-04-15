@@ -89,69 +89,115 @@ async function fetchJsonCached(url) {
   return promise;
 }
 
-// Per-asset file paths
-function cacheFile(coinId) {
-  return path.join(CACHE_DIR, `price_cache_${coinId}.json`);
+// Per-asset, per-currency file paths. Historical data for each (coin, currency)
+// pair is fetched natively from CoinGecko (vs_currency=<currency>) and cached
+// independently so chart/signal values are authentic historical prices in that
+// currency — no today's-FX conversion of a USD-canonical series.
+function cacheFile(coinId, currency) {
+  return path.join(CACHE_DIR, `price_cache_${coinId}_${currency}.json`);
 }
-function historyFile(coinId) {
-  return path.join(CACHE_DIR, `price_history_${coinId}.json`);
+function historyFile(coinId, currency) {
+  return path.join(CACHE_DIR, `price_history_${coinId}_${currency}.json`);
 }
 
-async function loadCache(coinId) {
+async function loadCache(coinId, currency) {
   try {
-    const raw = await fs.readFile(cacheFile(coinId), "utf8");
+    const raw = await fs.readFile(cacheFile(coinId, currency), "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-async function saveCache(coinId, data) {
+async function saveCache(coinId, currency, data) {
   await fs.mkdir(CACHE_DIR, { recursive: true });
-  await fs.writeFile(cacheFile(coinId), JSON.stringify(data));
+  await fs.writeFile(cacheFile(coinId, currency), JSON.stringify(data));
 }
 
-async function loadHistory(coinId) {
+async function loadHistory(coinId, currency) {
   try {
-    const raw = await fs.readFile(historyFile(coinId), "utf8");
+    const raw = await fs.readFile(historyFile(coinId, currency), "utf8");
     return JSON.parse(raw);
   } catch {
     return {};
   }
 }
 
-async function saveHistory(coinId, history) {
+async function saveHistory(coinId, currency, history) {
   await fs.mkdir(CACHE_DIR, { recursive: true });
-  await fs.writeFile(historyFile(coinId), JSON.stringify(history));
+  await fs.writeFile(historyFile(coinId, currency), JSON.stringify(history));
 }
 
-/** Migrate old non-prefixed files to bitcoin-prefixed */
+/**
+ * Migrate pre-multi-currency files:
+ * - `price_cache.json` / `price_history.json` → bitcoin + usd variants
+ * - `price_cache_{coin}.json` / `price_history_{coin}.json` → _usd variants
+ *
+ * Preserves any accumulated USD history the user already has.
+ */
 async function migrateOldFiles() {
-  const oldCache = path.join(CACHE_DIR, "price_cache.json");
-  const oldHistory = path.join(CACHE_DIR, "price_history.json");
+  // Legacy pre-asset-prefix files
+  const legacyCache = path.join(CACHE_DIR, "price_cache.json");
+  const legacyHistory = path.join(CACHE_DIR, "price_history.json");
   try {
-    await fs.access(oldCache);
-    const newCache = cacheFile("bitcoin");
+    await fs.access(legacyCache);
+    const target = cacheFile("bitcoin", "usd");
     try {
-      await fs.access(newCache);
+      await fs.access(target);
     } catch {
-      await fs.rename(oldCache, newCache);
-      console.log("Migrated price_cache.json → price_cache_bitcoin.json");
+      await fs.rename(legacyCache, target);
+      console.log("Migrated price_cache.json → price_cache_bitcoin_usd.json");
     }
   } catch {
-    /* no old file */
+    /* no legacy file */
   }
   try {
-    await fs.access(oldHistory);
-    const newHistory = historyFile("bitcoin");
+    await fs.access(legacyHistory);
+    const target = historyFile("bitcoin", "usd");
     try {
-      await fs.access(newHistory);
+      await fs.access(target);
     } catch {
-      await fs.rename(oldHistory, newHistory);
-      console.log("Migrated price_history.json → price_history_bitcoin.json");
+      await fs.rename(legacyHistory, target);
+      console.log(
+        "Migrated price_history.json → price_history_bitcoin_usd.json",
+      );
     }
   } catch {
-    /* no old file */
+    /* no legacy file */
+  }
+
+  // Asset-prefixed but non-currency files → _usd variants
+  for (const coinId of ASSET_IDS) {
+    const oldCache = path.join(CACHE_DIR, `price_cache_${coinId}.json`);
+    const oldHistory = path.join(CACHE_DIR, `price_history_${coinId}.json`);
+    try {
+      await fs.access(oldCache);
+      const target = cacheFile(coinId, "usd");
+      try {
+        await fs.access(target);
+      } catch {
+        await fs.rename(oldCache, target);
+        console.log(
+          `Migrated price_cache_${coinId}.json → price_cache_${coinId}_usd.json`,
+        );
+      }
+    } catch {
+      /* no old file */
+    }
+    try {
+      await fs.access(oldHistory);
+      const target = historyFile(coinId, "usd");
+      try {
+        await fs.access(target);
+      } catch {
+        await fs.rename(oldHistory, target);
+        console.log(
+          `Migrated price_history_${coinId}.json → price_history_${coinId}_usd.json`,
+        );
+      }
+    } catch {
+      /* no old file */
+    }
   }
 }
 
@@ -160,9 +206,12 @@ migrateOldFiles().catch(() => {});
 
 /**
  * Merge new prices into persistent history and return the full timeline.
+ * History is scoped to (coin, currency) because each (coin, currency) pair is
+ * fetched natively from CoinGecko and represents authentic historical prices
+ * in that currency.
  */
-async function mergeIntoHistory(coinId, freshPrices) {
-  const history = await loadHistory(coinId);
+async function mergeIntoHistory(coinId, currency, freshPrices) {
+  const history = await loadHistory(coinId, currency);
   let added = 0;
 
   for (const p of freshPrices) {
@@ -173,9 +222,9 @@ async function mergeIntoHistory(coinId, freshPrices) {
   }
 
   if (added > 0) {
-    await saveHistory(coinId, history);
+    await saveHistory(coinId, currency, history);
     console.log(
-      `${coinId} history: added ${added} days, total ${Object.keys(history).length} days`,
+      `${coinId}/${currency} history: added ${added} days, total ${Object.keys(history).length} days`,
     );
   }
 
@@ -186,6 +235,8 @@ async function mergeIntoHistory(coinId, freshPrices) {
 
 /**
  * Clear in-memory and file caches for a coin so next fetch hits CoinGecko.
+ * Removes every currency variant of the price cache; history files are kept
+ * because they only accumulate.
  */
 export async function invalidateCache(coinId) {
   // Clear all memCache entries for this coin
@@ -194,32 +245,42 @@ export async function invalidateCache(coinId) {
       delete memCache[url];
     }
   }
-  // Remove file-based price cache (history file kept — it only accumulates)
+  // Remove every currency variant of the file-based price cache
   try {
-    await fs.unlink(cacheFile(coinId));
+    const entries = await fs.readdir(CACHE_DIR);
+    const prefix = `price_cache_${coinId}_`;
+    await Promise.all(
+      entries
+        .filter((e) => e.startsWith(prefix) && e.endsWith(".json"))
+        .map((e) => fs.unlink(path.join(CACHE_DIR, e)).catch(() => {})),
+    );
   } catch {
-    /* no file */
+    /* no cache dir */
   }
 }
 
 /**
- * Fetch price history (daily) for the last 365 days for any coin.
+ * Fetch price history (daily) for the last 365 days for any coin, in the
+ * requested vs_currency. Native-currency fetches avoid the today's-FX
+ * distortion that comes from storing USD and converting later.
  */
 const historyInflight = {};
 
-export async function getPriceHistory(coinId = "bitcoin") {
-  const cache = await loadCache(coinId);
+export async function getPriceHistory(coinId = "bitcoin", currency = "usd") {
+  const vs = currency.toLowerCase();
+  const key = `${coinId}_${vs}`;
+  const cache = await loadCache(coinId, vs);
 
   if (cache && Date.now() - cache.fetchedAt < FOUR_HOURS) {
-    return mergeIntoHistory(coinId, cache.data);
+    return mergeIntoHistory(coinId, vs, cache.data);
   }
 
-  // Deduplicate concurrent requests for the same coin
-  if (historyInflight[coinId]) return historyInflight[coinId];
+  // Deduplicate concurrent requests for the same (coin, currency)
+  if (historyInflight[key]) return historyInflight[key];
 
   const promise = (async () => {
     const data = await rateLimitedFetch(
-      `${BASE}/coins/${coinId}/market_chart?vs_currency=usd&days=365`,
+      `${BASE}/coins/${coinId}/market_chart?vs_currency=${vs}&days=365`,
     );
 
     const prices = data.prices.map(([ts, price]) => ({
@@ -228,14 +289,14 @@ export async function getPriceHistory(coinId = "bitcoin") {
       price,
     }));
 
-    await saveCache(coinId, { data: prices, fetchedAt: Date.now() });
+    await saveCache(coinId, vs, { data: prices, fetchedAt: Date.now() });
 
-    return mergeIntoHistory(coinId, prices);
+    return mergeIntoHistory(coinId, vs, prices);
   })();
 
-  historyInflight[coinId] = promise;
+  historyInflight[key] = promise;
   promise.finally(() => {
-    delete historyInflight[coinId];
+    delete historyInflight[key];
   });
 
   return promise;

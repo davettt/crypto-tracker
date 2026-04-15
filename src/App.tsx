@@ -43,6 +43,7 @@ export default function App() {
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState<PortfolioSettings | null>(null);
+  const [buildStale, setBuildStale] = useState(false);
   const didInit = useRef(false);
 
   // Filter transactions for active asset
@@ -66,6 +67,10 @@ export default function App() {
       setAllTransactions(data.transactions ?? []);
       setSettings(data.settings);
     });
+    void fetch("/api/build-status")
+      .then((r) => r.json())
+      .then((d) => setBuildStale(d.stale === true))
+      .catch(() => {});
   }, [fetchOverview, fetchChart]);
 
   // Fetch data when switching assets (if not cached)
@@ -156,6 +161,16 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
+        {buildStale && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+            Source files have changed since the last build. Run{" "}
+            <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+              npm run restart:pm2
+            </code>{" "}
+            to apply updates.
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -184,10 +199,12 @@ export default function App() {
                   <>
                     <PriceChart
                       data={chartData}
+                      homeCurrency={homeCurrency}
                       displayCurrency={displayCurrency}
                       exchangeRates={overview.exchangeRates}
                       activeAsset={activeAsset}
-                      currentPriceUsd={overview.current.priceUsd}
+                      currentPrice={overview.current.price}
+                      transactions={transactions}
                     />
                     <RsiChart data={chartData} />
                   </>
@@ -198,6 +215,10 @@ export default function App() {
                   signals={overview.signals}
                   overall={overview.overall}
                   fearGreed={overview.fearGreed}
+                  homeCurrency={homeCurrency}
+                  displayCurrency={displayCurrency}
+                  exchangeRates={overview.exchangeRates}
+                  activeAsset={activeAsset}
                 />
               </div>
             </div>

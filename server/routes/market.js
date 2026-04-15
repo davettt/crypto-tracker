@@ -35,7 +35,7 @@ router.get("/overview", async (req, res) => {
     const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
 
     const promises = [
-      getPriceHistory(assetId),
+      getPriceHistory(assetId, homeCurrency),
       getCoinCurrent(assetId, homeCurrency),
       getExchangeRates(homeCurrency),
     ];
@@ -48,11 +48,14 @@ router.get("/overview", async (req, res) => {
     const [dailyPrices, current, exchangeRates] = results;
     const fearGreed = asset.fearGreed ? results[3] : null;
 
+    // Historical prices and current price are both in homeCurrency, so signals
+    // (and their MA values) are computed natively in homeCurrency — no FX
+    // conversion step that would distort historical values.
     const weeklyPrices = toWeekly(dailyPrices);
     const { signals, overall } = generateSignals(
       dailyPrices,
       weeklyPrices,
-      current.priceUsd,
+      current.price,
       current.ath,
     );
 
@@ -88,23 +91,24 @@ router.get("/chart", async (req, res) => {
     const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
 
     const [dailyPrices, current] = await Promise.all([
-      getPriceHistory(assetId),
+      getPriceHistory(assetId, homeCurrency),
       getCoinCurrent(assetId, homeCurrency),
     ]);
 
-    // Append live price as today's data point so chart matches header
+    // Historical and current price are both in homeCurrency. Append the live
+    // price as today's data point so the chart matches the header exactly.
     const today = new Date().toISOString().split("T")[0];
     const lastDay = dailyPrices[dailyPrices.length - 1];
     const withLive =
       lastDay && lastDay.date === today
         ? dailyPrices.map((d) =>
-            d === lastDay ? { ...d, price: current.priceUsd } : d,
+            d === lastDay ? { ...d, price: current.price } : d,
           )
         : [
             ...dailyPrices,
             {
               date: today,
-              price: current.priceUsd,
+              price: current.price,
               timestamp: Date.now(),
             },
           ];
@@ -127,6 +131,9 @@ router.get("/chart", async (req, res) => {
         price: w.price,
         rsi: weeklyRsi[i]?.value ?? null,
       })),
+      // Source currency for all daily/weekly prices in this response. Client
+      // uses this to convert to displayCurrency when it differs from home.
+      currency: homeCurrency,
       asset: assetId,
     });
   } catch (err) {

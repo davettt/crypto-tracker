@@ -5,7 +5,9 @@ export type AssetId =
   | "ethereum"
   | "solana"
   | "render-token"
-  | "tron";
+  | "tron"
+  | "bittensor"
+  | "fetch-ai";
 
 export interface AssetConfig {
   id: AssetId;
@@ -51,6 +53,20 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     decimals: 4,
     fearGreed: false,
   },
+  bittensor: {
+    id: "bittensor",
+    symbol: "TAO",
+    name: "Bittensor",
+    decimals: 4,
+    fearGreed: false,
+  },
+  "fetch-ai": {
+    id: "fetch-ai",
+    symbol: "FET",
+    name: "Artificial Superintelligence Alliance",
+    decimals: 4,
+    fearGreed: false,
+  },
 };
 
 export const ASSET_LIST: AssetId[] = [
@@ -59,6 +75,8 @@ export const ASSET_LIST: AssetId[] = [
   "solana",
   "render-token",
   "tron",
+  "bittensor",
+  "fetch-ai",
 ];
 
 // --- Market data types ---
@@ -93,6 +111,12 @@ export interface Signal {
   indicator: string;
   value: number;
   message: string;
+  /**
+   * Raw MA value (unrounded), in the home currency the signals were computed
+   * in. When present, `message` contains a `{ma}` placeholder that the client
+   * substitutes using its display currency.
+   */
+  maValue?: number;
 }
 
 export interface Overall {
@@ -132,6 +156,8 @@ export interface WeeklyDataPoint {
 export interface ChartData {
   daily: DailyDataPoint[];
   weekly: WeeklyDataPoint[];
+  /** Source currency of the daily/weekly prices — always the home currency. */
+  currency: Currency;
 }
 
 // --- Currency types ---

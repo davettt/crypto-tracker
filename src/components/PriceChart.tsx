@@ -4,22 +4,35 @@ import {
   ColorType,
   AreaSeries,
   LineSeries,
+  createSeriesMarkers,
+  type SeriesMarker,
+  type Time,
 } from "lightweight-charts";
-import type { ChartData, Currency, ExchangeRates, AssetId } from "../types";
+import type {
+  ChartData,
+  Currency,
+  ExchangeRates,
+  AssetId,
+  Transaction,
+} from "../types";
 import { ASSETS, CURRENCY_SYMBOLS } from "../types";
 
 export default function PriceChart({
   data,
+  homeCurrency,
   displayCurrency,
   exchangeRates,
   activeAsset,
-  currentPriceUsd,
+  currentPrice,
+  transactions,
 }: {
   data: ChartData;
+  homeCurrency: Currency;
   displayCurrency: Currency;
   exchangeRates: ExchangeRates;
   activeAsset: AssetId;
-  currentPriceUsd?: number;
+  currentPrice?: number;
+  transactions: Transaction[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const assetConfig = ASSETS[activeAsset];
@@ -28,12 +41,17 @@ export default function PriceChart({
     const container = containerRef.current;
     if (!container || data.daily.length === 0) return;
 
-    // Chart data is in USD; convert to display currency
+    // Chart data is in the home currency it was fetched against (authentic
+    // historical prices, not USD converted through today's FX). Fall back to
+    // the home currency prop if the response didn't include one.
+    const sourceCurrency = (data.currency ?? homeCurrency).toLowerCase();
     const dc = displayCurrency.toLowerCase();
     const assetPrices = exchangeRates.coinPrices[activeAsset] ?? {};
-    const usdPrice = assetPrices["usd"] ?? 1;
-    const dcPrice = assetPrices[dc] ?? usdPrice;
-    const rate = dcPrice / usdPrice;
+    const srcPrice = assetPrices[sourceCurrency] ?? 1;
+    const dcPrice = assetPrices[dc] ?? srcPrice;
+    // When display === source (the common case) rate is 1 and no conversion
+    // happens — the line and MA are authentic historical values.
+    const rate = dc === sourceCurrency ? 1 : dcPrice / srcPrice;
 
     const chart = createChart(container, {
       layout: {
@@ -72,8 +90,8 @@ export default function PriceChart({
     const dailyData = data.daily.map((d, i) => ({
       time: d.date,
       value:
-        currentPriceUsd && i === data.daily.length - 1
-          ? currentPriceUsd * rate
+        currentPrice && i === data.daily.length - 1
+          ? currentPrice * rate
           : d.price * rate,
     }));
     priceSeries.setData(dailyData);
@@ -86,6 +104,59 @@ export default function PriceChart({
           value: (d.ma200 as number) * rate,
         })),
     );
+
+    // Transaction markers — green dot = buy, red dot = sell, positioned at
+    // the historical price in display currency. See README for FX caveat.
+    const firstDay = data.daily[0];
+    const lastDay = data.daily[data.daily.length - 1];
+    if (transactions.length > 0 && firstDay && lastDay) {
+      const minDate = firstDay.date;
+      const maxDate = lastDay.date;
+
+      const markers: SeriesMarker<Time>[] = transactions
+        .filter((tx) => {
+          if (tx.date < minDate || tx.date > maxDate) return false;
+          const txPrice = tx.price ?? tx.priceUsd;
+          return txPrice != null && txPrice > 0;
+        })
+        .map((tx): SeriesMarker<Time> => {
+          const txPrice = (tx.price ?? tx.priceUsd) as number;
+          const txCurrency = (
+            tx.price != null ? tx.currency : "USD"
+          ).toLowerCase();
+
+          let markerPrice: number;
+          if (txCurrency === dc) {
+            markerPrice = txPrice;
+          } else {
+            const txAssetPrice = assetPrices[txCurrency];
+            if (!txAssetPrice || !dcPrice) {
+              markerPrice = txPrice;
+            } else {
+              markerPrice = txPrice * (dcPrice / txAssetPrice);
+            }
+          }
+
+          const isBuy = tx.type === "buy";
+          return {
+            time: tx.date as unknown as Time,
+            position: "atPriceMiddle",
+            shape: "circle",
+            color: isBuy ? "#16a34a" : "#dc2626",
+            price: markerPrice,
+            size: 1,
+          };
+        })
+        .sort((a, b) => {
+          const at = a.time as unknown as string;
+          const bt = b.time as unknown as string;
+          return at < bt ? -1 : at > bt ? 1 : 0;
+        });
+
+      if (markers.length > 0) {
+        createSeriesMarkers(priceSeries, markers);
+      }
+    }
 
     chart.timeScale().fitContent();
 
@@ -100,7 +171,15 @@ export default function PriceChart({
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, [data, displayCurrency, exchangeRates, activeAsset, currentPriceUsd]);
+  }, [
+    data,
+    homeCurrency,
+    displayCurrency,
+    exchangeRates,
+    activeAsset,
+    currentPrice,
+    transactions,
+  ]);
 
   const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
 
@@ -119,6 +198,18 @@ export default function PriceChart({
             <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-amber-500" />{" "}
             200-Day MA
           </span>
+          {transactions.length > 0 && (
+            <>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-600" />{" "}
+                Buy
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2 w-2 rounded-full bg-red-600" />{" "}
+                Sell
+              </span>
+            </>
+          )}
         </div>
       </div>
       <div ref={containerRef} />

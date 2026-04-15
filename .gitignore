@@ -8,4 +8,5 @@ local_data/
 .vscode/
 .idea/
 .claude/
+.last-build
 CLAUDE.md

@@ -49,6 +49,12 @@ export default function PriceHeader({
   const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
   const showSecondary = displayCurrency !== homeCurrency;
 
+  // Derive home-currency-to-USD rate (e.g. "1 AUD = 0.6350 USD")
+  const hcUsdRate =
+    hc !== "usd" && assetPrices["usd"] && assetPrices[hc]
+      ? assetPrices["usd"] / assetPrices[hc]
+      : null;
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
@@ -94,6 +100,11 @@ export default function PriceHeader({
           MCap: {symbol}
           {fmt(marketCap)}
         </span>
+        {hcUsdRate != null && (
+          <span>
+            {homeCurrency}/USD: {hcUsdRate.toFixed(4)}
+          </span>
+        )}
       </div>
     </div>
   );
