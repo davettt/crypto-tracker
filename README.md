@@ -1,10 +1,10 @@
 # Crypto Tracker
 
-Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, FET) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
+Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, LINK) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
 
 ## Features
 
-- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX, TAO, FET with tab navigation
+- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX, TAO, LINK with tab navigation
 - Price chart with 200-day MA overlay and buy/sell transaction markers at historical entry prices
 - Weekly RSI chart with overbought/oversold zones
 - Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown

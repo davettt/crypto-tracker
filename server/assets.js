@@ -48,11 +48,11 @@ export const ASSETS = {
     decimals: 4,
     fearGreed: false,
   },
-  "fetch-ai": {
-    id: "fetch-ai",
-    symbol: "FET",
-    name: "Artificial Superintelligence Alliance",
-    coingeckoId: "fetch-ai",
+  chainlink: {
+    id: "chainlink",
+    symbol: "LINK",
+    name: "Chainlink",
+    coingeckoId: "chainlink",
     decimals: 4,
     fearGreed: false,
   },

@@ -7,7 +7,7 @@ export type AssetId =
   | "render-token"
   | "tron"
   | "bittensor"
-  | "fetch-ai";
+  | "chainlink";
 
 export interface AssetConfig {
   id: AssetId;
@@ -60,10 +60,10 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     decimals: 4,
     fearGreed: false,
   },
-  "fetch-ai": {
-    id: "fetch-ai",
-    symbol: "FET",
-    name: "Artificial Superintelligence Alliance",
+  chainlink: {
+    id: "chainlink",
+    symbol: "LINK",
+    name: "Chainlink",
     decimals: 4,
     fearGreed: false,
   },
@@ -76,7 +76,7 @@ export const ASSET_LIST: AssetId[] = [
   "render-token",
   "tron",
   "bittensor",
-  "fetch-ai",
+  "chainlink",
 ];
 
 // --- Market data types ---

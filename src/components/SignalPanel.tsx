@@ -24,19 +24,19 @@ const EXPLAINERS: Record<string, { what: string; why: string }> = {
   },
   "200-Day MA": {
     what: "The 200-day Moving Average is the average closing price over the last 200 days. It smooths out short-term volatility and shows the long-term trend direction.",
-    why: "When price falls below the 200-day MA, Bitcoin is trading below its long-term trend — it's 'on sale' relative to recent history. The further below, the better the value. When price is well above, you're paying a premium. The Mayer Multiple (below) quantifies exactly how far above or below.",
+    why: "When price falls below the 200-day MA, the asset is trading below its long-term trend — it's 'on sale' relative to recent history. The further below, the better the value. When price is well above, you're paying a premium. The Mayer Multiple (below) quantifies exactly how far above or below.",
   },
   "200-Week MA": {
-    what: "The 200-week Moving Average is the average price over roughly 4 years — spanning a full Bitcoin halving cycle. It represents the deepest long-term trend.",
-    why: "Bitcoin has never closed a week below its 200-week MA for long. Every time it has touched or dipped below, it marked a generational buying opportunity (2015, 2018-19, 2022). This is the single most important indicator for a multi-year holder — if price is below this line, it's historically the best time to buy.",
+    what: "The 200-week Moving Average is the average price over roughly 4 years — a very long-term trend floor. For Bitcoin this spans a full halving cycle; for other assets, it captures multiple macro cycles.",
+    why: "For Bitcoin, price has rarely closed a week below the 200-week MA, and every touch (2015, 2018-19, 2022) has marked a generational buying opportunity. The indicator is most battle-tested on BTC; for altcoins, treat it as the deepest structural trend line — prices at or below it have historically been high-conviction accumulation zones, but altcoin cycles are less reliable than BTC's.",
   },
   "Mayer Multiple": {
     what: "The Mayer Multiple is simply the current price divided by the 200-day MA. A value of 1.0 means price equals the average. Below 1.0 means price is below average.",
-    why: "Below 0.8 has historically been a strong accumulation zone — price is 20%+ below its long-term trend. Above 2.4 has historically preceded major corrections. This gives you a clean number to gauge how over- or under-valued Bitcoin is relative to its own trend.",
+    why: "Originally developed on Bitcoin: below 0.8 has historically been a strong accumulation zone (price 20%+ below its long-term trend) and above 2.4 has preceded major corrections. The math applies to any asset, but the 0.8 / 2.4 thresholds are calibrated on BTC — for altcoins, they're a reasonable directional gauge, not a precise trigger.",
   },
   "ATH Drawdown": {
-    what: "How far the current price is below Bitcoin's all-time high (ATH), expressed as a percentage.",
-    why: "Bitcoin has historically dropped 60-85% from its peaks during bear markets. Drawdowns of 60%+ have been prime accumulation zones in every cycle (2011, 2014, 2018, 2022). Near the ATH (within 5%), risk is highest — that's where FOMO buying happens. The bigger the drawdown, the better the risk/reward for a long-term holder.",
+    what: "How far the current price is below the asset's all-time high (ATH), expressed as a percentage.",
+    why: "Bitcoin has historically drawdown 60-85% from its peaks during bear markets, and altcoins often 80-95%+. Deep drawdowns on fundamentally-sound assets have been prime accumulation zones in every crypto cycle. Near the ATH (within 5%), risk is highest — that's where FOMO buying happens. The bigger the drawdown, the better the risk/reward for a long-term holder — but drawdown alone isn't enough: weaker assets can drift to zero rather than recover.",
   },
   "Fear & Greed": {
     what: "A composite index (0-100) measuring market sentiment from social media, volatility, volume, surveys, and Bitcoin dominance. Extreme fear = 0-25, extreme greed = 75-100.",

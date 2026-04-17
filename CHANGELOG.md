@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.3.0] - 2026-04-17
+
+### Added
+
+- **Chainlink (LINK)** added to the asset registry — blue-chip oracle infrastructure with real traditional-finance partnerships (SWIFT, DTCC, Fidelity, ANZ) and exposure to the tokenisation narrative
+
+### Changed
+
+- Target sell price rows now step at +25% / +50% / +75% / +100% (previously +15% / +20% / +25% / +30%) — better aligned with a long-term hold thesis where small gains are not actionable sell triggers
+- Indicator help text (200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown) rewritten to be asset-agnostic. Bitcoin-specific history still called out as reference, but explainers now apply across all tracked assets (was previously BTC-centric)
+
+### Removed
+
+- **Fetch.ai / ASI (FET)** removed from the asset registry — thesis weakened by the Aug-2024 ASI merger dilution, lack of blue-chip partnerships, and overlap with RENDER/TAO for AI narrative exposure
+
 ## [2.2.0] - 2026-04-15
 
 ### Added
