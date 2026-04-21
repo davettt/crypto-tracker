@@ -10,15 +10,21 @@ const ROOT = path.join(__dirname, "..");
  * Compares the `.last-build` marker timestamp against the newest mtime
  * in `src/` and `server/`. Result is computed once at startup and cached.
  */
+// Directories to skip — not source files, shouldn't trigger stale detection
+const SKIP_DIRS = new Set(["node_modules", "dist", "local_data", ".git"]);
+
 function newestMtime(dir) {
   let newest = 0;
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+      if (SKIP_DIRS.has(entry.name)) continue;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         newest = Math.max(newest, newestMtime(full));
       } else {
+        // Skip log files and non-source files
+        if (entry.name.endsWith(".log")) continue;
         newest = Math.max(newest, fs.statSync(full).mtimeMs);
       }
     }

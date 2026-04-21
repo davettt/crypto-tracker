@@ -11,6 +11,7 @@ import PortfolioTracker from "./components/PortfolioTracker";
 import TaxSettings from "./components/TaxSettings";
 import TaxReport from "./components/TaxReport";
 import TargetCalculator from "./components/TargetCalculator";
+import AlertSettings from "./components/AlertSettings";
 
 interface PortfolioData {
   settings: PortfolioSettings;
@@ -266,12 +267,15 @@ export default function App() {
               />
             </div>
 
-            <TaxSettings
-              settings={settings?.taxSettings}
-              onSave={() => {
-                reloadPortfolio();
-              }}
-            />
+            <div className="flex flex-wrap items-center gap-4">
+              <TaxSettings
+                settings={settings?.taxSettings}
+                onSave={() => {
+                  reloadPortfolio();
+                }}
+              />
+              <AlertSettings />
+            </div>
           </div>
         )}
       </main>

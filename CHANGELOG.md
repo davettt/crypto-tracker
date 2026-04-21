@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.0] - 2026-04-22
+
+### Added
+
+- **Email alerts via Resend** — configurable email notifications checked every 4 hours, with three trigger types:
+  - **Signal state changes**: notifies when an asset's overall assessment shifts (e.g. HOLD → STRONG BUY)
+  - **24h price movement**: alerts when any asset moves beyond a configurable threshold (default ±10%)
+  - **Target sell price approach**: alerts when price nears 1.5x/2x/3x/5x multiples of your average cost basis, factoring in exchange fees and CGT
+- Alert settings UI at the bottom of the page — configure email, Resend API key, toggle individual triggers, adjust thresholds
+- "Send Test Email" button to verify configuration before relying on live alerts
+- "Check Now" button to manually trigger an alert check on demand
+- Alert state tracking prevents duplicate emails — resets when conditions clear
+
 ## [2.3.0] - 2026-04-17
 
 ### Added

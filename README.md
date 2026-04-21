@@ -16,6 +16,7 @@ Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, LINK) with buy/sell
 - Target sell price calculator factoring in exchange fees and tax rates
 - CoinSpot CSV import with duplicate detection
 - Actual crypto amount override on transaction forms — back-derives the effective price so FIFO cost basis matches exchange statements exactly (handles Revolut-style spread)
+- **Email alerts** via Resend — signal changes, large price moves, and target sell price proximity triggers sent to your inbox every 4 hours
 - Refresh button bypasses the 4-hour cache for on-demand fresh prices; normal loads still use cache to respect rate limits
 - Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
 - Display currency toggle to view market data in any supported currency
@@ -48,7 +49,7 @@ node server/index.js
 
 ## Environment Variables
 
-No API keys required. CoinGecko free tier and alternative.me Fear & Greed API are used.
+No API keys required for core functionality. CoinGecko free tier and alternative.me Fear & Greed API are used. Email alerts optionally require a [Resend](https://resend.com) API key (free tier works).
 
 | Variable   | Default | Description                                  |
 | ---------- | ------- | -------------------------------------------- |
@@ -81,6 +82,8 @@ All data is stored locally in `local_data/` (gitignored):
 - `price_cache_{asset}_{currency}.json` — 4-hour API response cache per (asset, currency) pair
 - `price_history_{asset}_{currency}.json` — persistent daily price history per (asset, currency) pair, fetched natively from CoinGecko in that currency (grows over time)
 - `portfolio.json` — investment pool settings, transactions, and tax settings
+- `alert_settings.json` — email alert configuration (Resend API key, triggers, thresholds)
+- `alert_state.json` — last-alerted state per asset (prevents duplicate emails)
 
 Each `(asset, currency)` pair is fetched natively from CoinGecko (`vs_currency=<currency>`), so historical chart values, the 200-day MA, and transaction markers are all authentic historical prices in your home currency — not USD series converted through today's FX rate. Viewing the chart in a currency other than your home currency still applies today's FX to cross over, but the common case (display === home) is exact.
 

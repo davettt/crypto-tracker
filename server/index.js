@@ -6,7 +6,9 @@ import marketRoutes from "./routes/market.js";
 import portfolioRoutes from "./routes/portfolio.js";
 import importRoutes from "./routes/import.js";
 import taxRoutes from "./routes/tax.js";
+import alertRoutes from "./routes/alerts.js";
 import { buildStale } from "./buildCheck.js";
+import { startAlertScheduler } from "./alerts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -25,6 +27,7 @@ app.use("/api/market", marketRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/tax", taxRoutes);
+app.use("/api/alerts", alertRoutes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === "production") {
@@ -36,4 +39,5 @@ if (process.env.NODE_ENV === "production") {
 
 app.listen(PORT, () => {
   console.log(`Crypto tracker running on :${PORT}`);
+  startAlertScheduler();
 });
