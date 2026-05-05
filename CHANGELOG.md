@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.5.0] - 2026-05-03
+
+### Added
+
+- **NEAR Protocol** added to the asset registry — AI-adjacent L1 with chain abstraction, recent partnerships (Nvidia, Deutsche Telekom), and exposure to decentralised AI infrastructure
+- **Floor Detection indicator** — detects potential natural price floors by combining three conditions: price stability (<25% range over 30 days), 200-day MA converging from above (declining, gap narrowing, within 30%), and RSI recovery (dipped below 40 in last 12 weeks, 4-week average recovered to 38-60). Fires as a moderate buy signal to reinforce other indicators without driving the assessment alone. Assets with RSI stuck oversold ("dead money") or MA still far above are correctly filtered out
+- **Per-asset price level alerts** — set target prices with direction (above/below) and optional notes. Alerts fire via email when price crosses the target. Shown as color-coded pills in the price header. Re-arm and remove inline
+- **Per-asset investment thesis notes** — editable inline below the asset name in the price header. Stored in `local_data/asset_notes.json` (not committed). API: `GET /api/notes`, `PUT /api/notes/:asset`
+- **Asset descriptions** — brief factual description of each asset shown in the price header
+- Total profit column in target sell price tables — profit/unit multiplied by holdings for that tier
+
+### Changed
+
+- **Target sell price calculator redesigned** — now shows 1.5x/2x/2.5x multiples of overall avg cost (was +25%/+50%/+75%/+100% net gain percentages). Separate tables for long-term (CGT discount rate) and short-term (full marginal rate) holdings, each showing: sell price, net/unit after fees+tax, profit/unit, total profit, and gain %. Makes it immediately clear what you actually take home and how much you can sell at the lower tax rate
+- **Alert target multiples** updated to 1.5x/2x/2.5x (was 1.5x/2x/3x/5x) — consistent with the target calculator UI
+- **Portfolio avg cost** now uses FIFO cost basis of remaining open lots (was all-time buy average including sold lots). Matches the target sell price calculator
+- **P&L label** changed to "Overall P&L" — clarifies it includes proceeds from past sales, not just unrealised gain on current holdings
+- Floor Detection explainer in SignalPanel updated to describe all three conditions including RSI recovery and "dead money" filtering
+
+### Fixed
+
+- **Alert state not saving** — `stateKey` variable was scoped inside an `if` block but referenced in the `else` branch, causing a ReferenceError that prevented state from persisting. This caused duplicate signal-change emails on every server restart. Fixed by moving the variable declaration outside the conditional
+- **AlertSettings showing "(disabled)"** when alerts were actually enabled — config was only fetched when the settings panel was opened. Now fetches on component mount
+
 ## [2.4.0] - 2026-04-22
 
 ### Added

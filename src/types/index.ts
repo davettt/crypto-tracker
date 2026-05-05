@@ -7,7 +7,8 @@ export type AssetId =
   | "render-token"
   | "tron"
   | "bittensor"
-  | "chainlink";
+  | "chainlink"
+  | "near";
 
 export interface AssetConfig {
   id: AssetId;
@@ -15,6 +16,7 @@ export interface AssetConfig {
   name: string;
   decimals: number;
   fearGreed: boolean;
+  description: string;
 }
 
 export const ASSETS: Record<AssetId, AssetConfig> = {
@@ -24,6 +26,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Bitcoin",
     decimals: 8,
     fearGreed: true,
+    description:
+      "Decentralised digital store of value — the original cryptocurrency",
   },
   ethereum: {
     id: "ethereum",
@@ -31,6 +35,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Ethereum",
     decimals: 6,
     fearGreed: false,
+    description:
+      "Programmable blockchain powering smart contracts, DeFi, and NFTs",
   },
   solana: {
     id: "solana",
@@ -38,6 +44,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Solana",
     decimals: 4,
     fearGreed: false,
+    description:
+      "High-throughput L1 blockchain optimised for speed and low fees",
   },
   "render-token": {
     id: "render-token",
@@ -45,6 +53,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Render",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised GPU rendering network connecting artists with GPU providers",
   },
   tron: {
     id: "tron",
@@ -52,6 +62,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "TRON",
     decimals: 4,
     fearGreed: false,
+    description:
+      "High-throughput blockchain dominant in USDT stablecoin transfers",
   },
   bittensor: {
     id: "bittensor",
@@ -59,6 +71,8 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Bittensor",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised AI network rewarding machine learning model contributions",
   },
   chainlink: {
     id: "chainlink",
@@ -66,6 +80,17 @@ export const ASSETS: Record<AssetId, AssetConfig> = {
     name: "Chainlink",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised oracle network bridging blockchains with real-world data",
+  },
+  near: {
+    id: "near",
+    symbol: "NEAR",
+    name: "NEAR Protocol",
+    decimals: 4,
+    fearGreed: false,
+    description:
+      "L1 blockchain with dedicated AI division, co-founded by Transformer paper co-author",
   },
 };
 
@@ -77,6 +102,7 @@ export const ASSET_LIST: AssetId[] = [
   "tron",
   "bittensor",
   "chainlink",
+  "near",
 ];
 
 // --- Market data types ---

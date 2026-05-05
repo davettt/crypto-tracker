@@ -151,9 +151,69 @@ export function mayerMultiple(dailyPrices) {
 }
 
 /**
+ * MA Convergence — detects when the 200-day MA is declining toward a
+ * stabilised price, signalling a potential bottom.
+ *
+ * Returns null if not enough data, or an object with:
+ *   - gapNow: current gap between price and MA (%)
+ *   - gapPrev: gap 30 days ago (%)
+ *   - priceRange: price volatility over last 30 days (%)
+ *   - maSlope: MA change over 30 days (%)
+ *   - converging: boolean — true if conditions met
+ */
+export function maConvergence(dailyPrices, ma200) {
+  const validMa = ma200.filter((m) => m.value !== null);
+  if (validMa.length < 30 || dailyPrices.length < 30) return null;
+
+  const last30 = dailyPrices.slice(-30);
+  const last30Ma = validMa.slice(-30);
+  if (last30Ma.length < 30) return null;
+
+  const prices = last30.map((d) => d.price);
+  const high = Math.max(...prices);
+  const low = Math.min(...prices);
+  const avg = prices.reduce((s, p) => s + p, 0) / prices.length;
+  const priceRange = ((high - low) / avg) * 100;
+
+  const maNow = last30Ma[last30Ma.length - 1].value;
+  const ma30Ago = last30Ma[0].value;
+  const maSlope = ((maNow - ma30Ago) / ma30Ago) * 100;
+
+  const currentPrice = prices[prices.length - 1];
+  const gapNow = ((currentPrice - maNow) / maNow) * 100;
+  const price30Ago = last30[0].price;
+  const gapPrev = ((price30Ago - ma30Ago) / ma30Ago) * 100;
+
+  const maAbovePrice = maNow > currentPrice;
+  const maDeclining = maSlope < -1;
+  const gapNarrowing = Math.abs(gapNow) < Math.abs(gapPrev);
+  const priceStable = priceRange < 25;
+  const gapCloseEnough = Math.abs(gapNow) <= 30;
+
+  return {
+    gapNow: Math.round(gapNow * 10) / 10,
+    gapPrev: Math.round(gapPrev * 10) / 10,
+    priceRange: Math.round(priceRange * 10) / 10,
+    maSlope: Math.round(maSlope * 10) / 10,
+    converging:
+      maAbovePrice &&
+      maDeclining &&
+      gapNarrowing &&
+      priceStable &&
+      gapCloseEnough,
+  };
+}
+
+/**
  * Generate buy/sell signals based on multiple indicators.
  */
-export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
+export function generateSignals(
+  dailyPrices,
+  weeklyPrices,
+  currentPrice,
+  ath,
+  assetId = null,
+) {
   const weeklyRsi = rsi(weeklyPrices, 14);
   const ma200 = sma(dailyPrices, 200);
   const ma200w = sma(weeklyPrices, 200);
@@ -342,6 +402,52 @@ export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath) {
       value: Math.round(athDrawdown),
       message: `${Math.round(athDrawdown)}% from ATH.`,
     });
+  }
+
+  // Floor Detection — price stability + MA convergence + RSI recovery
+  const convergence = maConvergence(dailyPrices, ma200);
+  const latestRsiValue = latestWeeklyRsi?.value;
+  const rsiWithValues = weeklyRsi.filter((r) => r.value !== null);
+  const last12Rsi = rsiWithValues.slice(-12);
+  const hadWashout =
+    last12Rsi.length >= 4 && last12Rsi.some((r) => r.value < 40);
+  const last4Rsi = rsiWithValues.slice(-4);
+  const avgRecent =
+    last4Rsi.length === 4
+      ? last4Rsi.reduce((s, r) => s + r.value, 0) / 4
+      : null;
+  const rsiRecovered =
+    hadWashout && avgRecent != null && avgRecent >= 38 && avgRecent <= 60;
+  if (convergence) {
+    const gapDirection =
+      convergence.gapNow < 0
+        ? `${Math.abs(convergence.gapNow)}% below`
+        : `${convergence.gapNow}% above`;
+    if (convergence.converging && rsiRecovered) {
+      signals.push({
+        type: "buy",
+        strength: "moderate",
+        indicator: "Floor Detection",
+        value: convergence.gapNow,
+        message: `Price stable (${convergence.priceRange}% range over 30d) while 200-day MA converges from above (gap narrowed from ${Math.abs(convergence.gapPrev)}% to ${Math.abs(convergence.gapNow)}%). RSI recovered to ${Math.round(avgRecent * 10) / 10} avg after dipping below 40 in recent weeks. Potential natural floor forming — if other indicators suggest buying, further significant drops are less likely without new negative catalysts.`,
+      });
+    } else if (convergence.converging && !rsiRecovered) {
+      signals.push({
+        type: "neutral",
+        strength: "none",
+        indicator: "Floor Detection",
+        value: convergence.gapNow,
+        message: `Price stable and 200-day MA converging (gap ${Math.abs(convergence.gapNow)}%), but RSI ${!hadWashout ? "has not been oversold recently" : avgRecent != null && avgRecent < 38 ? `still low (4-week avg ${Math.round(avgRecent * 10) / 10})` : "not yet showing recovery"} — buying momentum not yet confirmed.`,
+      });
+    } else {
+      signals.push({
+        type: "neutral",
+        strength: "none",
+        indicator: "Floor Detection",
+        value: convergence.gapNow,
+        message: `Price ${gapDirection} 200-day MA. No convergence pattern detected.`,
+      });
+    }
   }
 
   // Overall assessment

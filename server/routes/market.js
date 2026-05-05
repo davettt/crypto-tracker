@@ -57,6 +57,7 @@ router.get("/overview", async (req, res) => {
       weeklyPrices,
       current.price,
       current.ath,
+      assetId,
     );
 
     res.json({

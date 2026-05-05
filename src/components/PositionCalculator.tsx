@@ -620,6 +620,13 @@ export default function PositionCalculator({
           Set your investment pool above to see position sizing suggestions.
         </p>
       )}
+
+      <p className="mt-4 text-xs text-gray-400">
+        <span className="font-medium text-gray-500">Timing tip:</span> Crypto
+        volume peaks during US/EU hours (midnight–3am AEST). Prices tend to
+        drift lower during Australian daytime (12–3pm AEST) when global markets
+        are quietest — a small edge for placing buy orders.
+      </p>
     </div>
   );
 }

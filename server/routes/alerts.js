@@ -4,7 +4,10 @@ import {
   saveAlertSettings,
   sendTestEmail,
   checkAlerts,
+  loadPriceAlerts,
+  savePriceAlerts,
 } from "../alerts.js";
+import { isValidAsset } from "../assets.js";
 
 const router = Router();
 
@@ -109,6 +112,54 @@ router.post("/test", async (_req, res) => {
 router.post("/check", async (_req, res) => {
   try {
     await checkAlerts();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/alerts/price-alerts
+router.get("/price-alerts", async (_req, res) => {
+  try {
+    res.json(await loadPriceAlerts());
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// PUT /api/alerts/price-alerts/:asset — set price alerts for an asset
+router.put("/price-alerts/:asset", async (req, res) => {
+  try {
+    const { asset } = req.params;
+    if (!isValidAsset(asset)) {
+      return res.status(400).json({ error: "Unknown asset" });
+    }
+    const { alerts: assetAlerts } = req.body;
+    if (!Array.isArray(assetAlerts)) {
+      return res.status(400).json({ error: "alerts must be an array" });
+    }
+    for (const a of assetAlerts) {
+      if (typeof a.price !== "number" || !isFinite(a.price) || a.price <= 0) {
+        return res.status(400).json({ error: "Invalid price" });
+      }
+      if (a.direction !== "below" && a.direction !== "above") {
+        return res
+          .status(400)
+          .json({ error: "direction must be 'below' or 'above'" });
+      }
+    }
+    const all = await loadPriceAlerts();
+    if (assetAlerts.length === 0) {
+      delete all[asset];
+    } else {
+      all[asset] = assetAlerts.map((a) => ({
+        price: a.price,
+        direction: a.direction,
+        note: typeof a.note === "string" ? a.note.slice(0, 200) : "",
+        triggered: a.triggered ?? false,
+      }));
+    }
+    await savePriceAlerts(all);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });

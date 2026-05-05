@@ -1,22 +1,26 @@
 # Crypto Tracker
 
-Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, LINK) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
+Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, LINK, NEAR) with buy/sell signals for long-term holders. Analyses technical indicators, provides position sizing suggestions, tracks your portfolio with FIFO cost basis, and calculates Australian tax obligations.
 
 ## Features
 
-- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX, TAO, LINK with tab navigation
+- **Multi-asset**: BTC, ETH, SOL, RENDER, TRX, TAO, LINK, NEAR with tab navigation
 - Price chart with 200-day MA overlay and buy/sell transaction markers at historical entry prices
 - Weekly RSI chart with overbought/oversold zones
-- Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown
+- Buy/sell signals: Weekly RSI, 200-Day MA, 200-Week MA, Mayer Multiple, ATH Drawdown, Floor Detection
+- **Floor Detection** indicator — detects potential price floors by combining price stability (30-day range), 200-day MA convergence from above, and RSI recovery (12-week washout + 4-week avg recovery to neutral). Fires as a moderate buy signal to reinforce other indicators
 - Fear & Greed Index (Bitcoin-specific)
+- Per-asset investment thesis notes — editable inline, stored locally (not committed)
+- Per-asset price level alerts — set target prices with direction (above/below), get notified when hit
 - Position calculator with DCA and Lump Sum modes, all-asset portfolio value
-- Portfolio tracker with transaction history, edit, and P&L per asset
+- Portfolio tracker with transaction history, edit, and Overall P&L per asset (includes past sale proceeds)
 - FIFO cost basis engine with automatic lot matching
+- Portfolio avg cost uses FIFO remaining lots (not all-time buy average)
 - Australian tax report: FY summary, CGT with 50% discount for >12 month holdings, CSV export
-- Target sell price calculator factoring in exchange fees and tax rates
+- **Target sell price calculator** — shows 1.5x/2x/2.5x multiples of avg cost with separate tables for long-term (CGT discount) and short-term (full rate) holdings. Each table shows sell price, net per unit after fees+tax, profit per unit, total profit for that holding tier, and net gain %
 - CoinSpot CSV import with duplicate detection
 - Actual crypto amount override on transaction forms — back-derives the effective price so FIFO cost basis matches exchange statements exactly (handles Revolut-style spread)
-- **Email alerts** via Resend — signal changes, large price moves, and target sell price proximity triggers sent to your inbox every 4 hours
+- **Email alerts** via Resend — signal changes, large price moves, and target sell price proximity (1.5x/2x/2.5x) triggers sent to your inbox every 4 hours
 - Refresh button bypasses the 4-hour cache for on-demand fresh prices; normal loads still use cache to respect rate limits
 - Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
 - Display currency toggle to view market data in any supported currency
@@ -84,6 +88,8 @@ All data is stored locally in `local_data/` (gitignored):
 - `portfolio.json` — investment pool settings, transactions, and tax settings
 - `alert_settings.json` — email alert configuration (Resend API key, triggers, thresholds)
 - `alert_state.json` — last-alerted state per asset (prevents duplicate emails)
+- `price_alerts.json` — per-asset price level alerts (target price, direction, triggered status)
+- `asset_notes.json` — per-asset investment thesis notes (editable via UI)
 
 Each `(asset, currency)` pair is fetched natively from CoinGecko (`vs_currency=<currency>`), so historical chart values, the 200-day MA, and transaction markers are all authentic historical prices in your home currency — not USD series converted through today's FX rate. Viewing the chart in a currency other than your home currency still applies today's FX to cross over, but the common case (display === home) is exact.
 

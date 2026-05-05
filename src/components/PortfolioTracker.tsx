@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Transaction, Currency, Overall, Signal, AssetId } from "../types";
 import { ASSETS } from "../types";
 import CsvImport from "./CsvImport";
@@ -612,7 +612,28 @@ export default function PortfolioTracker({
 }) {
   const [showAllTx, setShowAllTx] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [fifoAvgCost, setFifoAvgCost] = useState<number | null>(null);
   const assetConfig = ASSETS[activeAsset];
+
+  useEffect(() => {
+    void fetch(`/api/tax/costbasis?asset=${activeAsset}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const lots = data.openLots ?? [];
+        const remaining = lots.reduce(
+          (s: number, l: { remaining: number }) => s + l.remaining,
+          0,
+        );
+        const cost = lots.reduce(
+          (
+            s: number,
+            l: { costBasis: number; remaining: number; amountCrypto: number },
+          ) => s + l.costBasis * (l.remaining / l.amountCrypto),
+          0,
+        );
+        setFifoAvgCost(remaining > 0 ? cost / remaining : null);
+      });
+  }, [activeAsset, transactions]);
   const assetSymbol = assetConfig.symbol;
   const assetDecimals = assetConfig.decimals;
 
@@ -680,7 +701,7 @@ export default function PortfolioTracker({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">P&L</p>
+                <p className="text-xs text-gray-500">Overall P&L</p>
                 <p
                   className={`text-lg font-bold ${pnl >= 0 ? "text-green-600" : "text-red-600"}`}
                 >
@@ -699,7 +720,7 @@ export default function PortfolioTracker({
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
               <span>
                 Avg cost: {symbol}
-                {fmt(avgCost)}/{assetSymbol}
+                {fmt(fifoAvgCost ?? avgCost)}/{assetSymbol}
               </span>
               <span>
                 Net invested: {symbol}

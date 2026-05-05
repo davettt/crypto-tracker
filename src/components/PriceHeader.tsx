@@ -1,5 +1,7 @@
+import { useState, useEffect, useRef } from "react";
 import type { CoinCurrent, Currency, ExchangeRates, AssetId } from "../types";
 import { ASSETS, CURRENCY_SYMBOLS } from "../types";
+import PriceAlerts from "./PriceAlerts";
 
 function fmt(n: number) {
   const decimals = Math.abs(n) < 10 ? 2 : Math.abs(n) < 1000 ? 1 : 0;
@@ -49,16 +51,61 @@ export default function PriceHeader({
   const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
   const showSecondary = displayCurrency !== homeCurrency;
 
-  // Derive home-currency-to-USD rate (e.g. "1 AUD = 0.6350 USD")
   const hcUsdRate =
     hc !== "usd" && assetPrices["usd"] && assetPrices[hc]
       ? assetPrices["usd"] / assetPrices[hc]
       : null;
 
+  // --- Thesis (user-editable, stored in local_data) ---
+  const [allNotes, setAllNotes] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/notes")
+      .then((r) => r.json())
+      .then(setAllNotes)
+      .catch(() => {});
+  }, []);
+
+  const thesis = allNotes[activeAsset] ?? "";
+
+  const startEdit = () => {
+    setDraft(thesis);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const saveThesis = async () => {
+    setEditing(false);
+    const trimmed = draft.trim();
+    setAllNotes((prev) =>
+      Object.fromEntries(
+        Object.entries({ ...prev, [activeAsset]: trimmed }).filter(
+          ([, v]) => v,
+        ),
+      ),
+    );
+    await fetch(`/api/notes/${activeAsset}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ thesis: trimmed }),
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") saveThesis();
+    if (e.key === "Escape") setEditing(false);
+  };
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
         {assetConfig.name} ({assetConfig.symbol})
+        <span className="ml-2 normal-case tracking-normal text-gray-400">
+          — {assetConfig.description}
+        </span>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 className="text-3xl font-bold text-gray-900">
@@ -106,6 +153,33 @@ export default function PriceHeader({
           </span>
         )}
       </div>
+      <div className="mt-2 text-xs italic text-gray-400">
+        {editing ? (
+          <span className="flex items-center gap-1">
+            <span>Thesis:</span>
+            <input
+              ref={inputRef}
+              className="flex-1 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs text-gray-700 not-italic outline-none focus:border-blue-400"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={saveThesis}
+              onKeyDown={handleKeyDown}
+              placeholder="Why are you tracking this asset?"
+            />
+          </span>
+        ) : (
+          <span
+            className="cursor-pointer hover:text-gray-600"
+            onClick={startEdit}
+            title="Click to edit thesis"
+          >
+            {thesis
+              ? `Thesis: ${thesis}`
+              : "Click to add your investment thesis..."}
+          </span>
+        )}
+      </div>
+      <PriceAlerts activeAsset={activeAsset} homeCurrency={homeCurrency} />
     </div>
   );
 }

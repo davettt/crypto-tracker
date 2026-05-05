@@ -7,6 +7,8 @@ export const ASSETS = {
     coingeckoId: "bitcoin",
     decimals: 8,
     fearGreed: true,
+    description:
+      "Decentralised digital store of value — the original cryptocurrency",
   },
   ethereum: {
     id: "ethereum",
@@ -15,6 +17,8 @@ export const ASSETS = {
     coingeckoId: "ethereum",
     decimals: 6,
     fearGreed: false,
+    description:
+      "Programmable blockchain powering smart contracts, DeFi, and NFTs",
   },
   solana: {
     id: "solana",
@@ -23,6 +27,8 @@ export const ASSETS = {
     coingeckoId: "solana",
     decimals: 4,
     fearGreed: false,
+    description:
+      "High-throughput L1 blockchain optimised for speed and low fees",
   },
   "render-token": {
     id: "render-token",
@@ -31,6 +37,8 @@ export const ASSETS = {
     coingeckoId: "render-token",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised GPU rendering network connecting artists with GPU providers",
   },
   tron: {
     id: "tron",
@@ -39,6 +47,8 @@ export const ASSETS = {
     coingeckoId: "tron",
     decimals: 4,
     fearGreed: false,
+    description:
+      "High-throughput blockchain dominant in USDT stablecoin transfers",
   },
   bittensor: {
     id: "bittensor",
@@ -47,6 +57,8 @@ export const ASSETS = {
     coingeckoId: "bittensor",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised AI network rewarding machine learning model contributions",
   },
   chainlink: {
     id: "chainlink",
@@ -55,6 +67,18 @@ export const ASSETS = {
     coingeckoId: "chainlink",
     decimals: 4,
     fearGreed: false,
+    description:
+      "Decentralised oracle network bridging blockchains with real-world data",
+  },
+  near: {
+    id: "near",
+    symbol: "NEAR",
+    name: "NEAR Protocol",
+    coingeckoId: "near",
+    decimals: 4,
+    fearGreed: false,
+    description:
+      "L1 blockchain with dedicated AI division, co-founded by Transformer paper co-author",
   },
 };
 

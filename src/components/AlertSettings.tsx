@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 interface AlertConfig {
   enabled: boolean;
@@ -21,18 +21,14 @@ export default function AlertSettings() {
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const didLoad = useRef(false);
-
   useEffect(() => {
-    if (!open || didLoad.current) return;
-    didLoad.current = true;
     void fetch("/api/alerts/settings")
       .then((r) => r.json())
       .then((data: AlertConfig) => {
         setConfig(data);
         setApiKey("");
       });
-  }, [open]);
+  }, []);
 
   function update(partial: Partial<AlertConfig>) {
     if (!config) return;

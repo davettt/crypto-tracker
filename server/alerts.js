@@ -10,6 +10,10 @@ import { loadPortfolio } from "./routes/portfolio.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SETTINGS_FILE = path.join(__dirname, "../local_data/alert_settings.json");
 const STATE_FILE = path.join(__dirname, "../local_data/alert_state.json");
+const PRICE_ALERTS_FILE = path.join(
+  __dirname,
+  "../local_data/price_alerts.json",
+);
 const DATA_DIR = path.join(__dirname, "../local_data");
 
 const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
@@ -37,6 +41,19 @@ export async function loadAlertSettings() {
 export async function saveAlertSettings(settings) {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+}
+
+export async function loadPriceAlerts() {
+  try {
+    return JSON.parse(await fs.readFile(PRICE_ALERTS_FILE, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+export async function savePriceAlerts(alerts) {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.writeFile(PRICE_ALERTS_FILE, JSON.stringify(alerts, null, 2) + "\n");
 }
 
 async function loadAlertState() {
@@ -105,6 +122,7 @@ export async function checkAlerts() {
         weeklyPrices,
         current.price,
         current.ath,
+        assetId,
       );
 
       const prevState = state[assetId] ?? {};
@@ -169,7 +187,7 @@ export async function checkAlerts() {
             assetTxs.reduce((sum, t) => sum + (t.price ?? 0), 0) /
             assetTxs.length;
           if (avgCost > 0) {
-            const targetMultiples = [1.5, 2, 3, 5];
+            const targetMultiples = [1.5, 2, 2.5];
             for (const mult of targetMultiples) {
               const rawTarget = avgCost * mult;
               const gain = rawTarget - avgCost;
@@ -180,11 +198,11 @@ export async function checkAlerts() {
               const pctFromTarget =
                 ((current.price - rawTarget) / rawTarget) * 100;
 
+              const stateKey = `target_${mult}x`;
               if (
                 pctFromTarget >= -settings.targetApproachPercent &&
                 pctFromTarget <= 5
               ) {
-                const stateKey = `target_${mult}x`;
                 if (!prevState[stateKey]) {
                   alerts.push({
                     asset: asset.symbol,
@@ -213,6 +231,38 @@ export async function checkAlerts() {
       console.error(`Alert check failed for ${assetId}:`, err.message);
     }
   }
+
+  // Price level alerts
+  const priceAlerts = await loadPriceAlerts();
+  let priceAlertsChanged = false;
+  for (const [assetId, assetAlerts] of Object.entries(priceAlerts)) {
+    const asset = ASSETS[assetId];
+    if (!asset) continue;
+    const lastPrice = state[assetId]?.lastPrice;
+    if (!lastPrice) continue;
+
+    for (const pa of assetAlerts) {
+      if (pa.triggered) continue;
+      const hit =
+        pa.direction === "below"
+          ? lastPrice <= pa.price
+          : lastPrice >= pa.price;
+      if (hit) {
+        pa.triggered = true;
+        priceAlertsChanged = true;
+        const label = pa.direction === "below" ? "dropped to" : "reached";
+        alerts.push({
+          asset: asset.symbol,
+          type: "price-level",
+          actionClass: pa.direction === "below" ? "buy" : "sell",
+          title: `${asset.symbol}: Price ${label} ${formatPrice(pa.price, homeCurrency)} target`,
+          detail: `Current price: ${formatPrice(lastPrice, homeCurrency)}${pa.note ? ` — ${pa.note}` : ""}`,
+          price: formatPrice(lastPrice, homeCurrency),
+        });
+      }
+    }
+  }
+  if (priceAlertsChanged) await savePriceAlerts(priceAlerts);
 
   await saveAlertState(state);
 
