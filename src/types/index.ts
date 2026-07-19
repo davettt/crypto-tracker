@@ -189,14 +189,7 @@ export interface ChartData {
 // --- Currency types ---
 
 export type Currency =
-  | "USD"
-  | "AUD"
-  | "GBP"
-  | "EUR"
-  | "JPY"
-  | "NZD"
-  | "SGD"
-  | "CAD";
+  "USD" | "AUD" | "GBP" | "EUR" | "JPY" | "NZD" | "SGD" | "CAD";
 
 export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: "$",
