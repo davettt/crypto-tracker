@@ -41,7 +41,7 @@
     "@types/express": "^5.0.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
     "eslint": "^10.1.0",
