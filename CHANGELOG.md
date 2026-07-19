@@ -2,6 +2,22 @@
 
 ## [2.5.0] - 2026-05-03
 
+### Security & Quality
+
+- Added `eslint-plugin-security` for static security analysis of frontend code
+- Added `husky` with pre-commit hook for automated quality gates
+- Added `license-checker` for dependency license compliance
+- Created `allowed-packages.json` dependency allowlist
+- Added GitHub Actions CI workflow and Dependabot configuration
+- Dependabot config synced with shared build-policy template (7-day cooldown on version updates now standard)
+- Added `test:smoke` script for basic server health checking
+- Fixed all npm audit vulnerabilities (shell-quote, vite, postcss, babel, qs, brace-expansion)
+- Updated `.gitignore` to cover all private/policy files
+- Enabled eslint for the entire Express server (previously excluded from linting)
+- Fixed dead code: removed unused variables/imports in indicators.js, portfolio.js, import.js, buildCheck.js
+- Fixed regex escape in import CSV parser
+- Added `no-unused-vars` with `_` prefix pattern for intentionally unused parameters
+
 ### Added
 
 - **NEAR Protocol** added to the asset registry — AI-adjacent L1 with chain abstraction, recent partnerships (Nvidia, Deutsche Telekom), and exposure to decentralised AI infrastructure

@@ -3,7 +3,7 @@ import { loadPortfolio } from "./portfolio.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { ASSETS, isValidAsset, DEFAULT_ASSET } from "../assets.js";
+import { DEFAULT_ASSET } from "../assets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, "../../local_data/portfolio.json");
@@ -37,7 +37,7 @@ function parseCoinSpotDate(raw) {
  */
 function parseNum(val) {
   if (val == null || val === "") return 0;
-  return parseFloat(String(val).replace(/[^0-9.\-]/g, "")) || 0;
+  return parseFloat(String(val).replace(/[^0-9.-]/g, "")) || 0;
 }
 
 /**

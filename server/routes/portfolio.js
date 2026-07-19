@@ -2,7 +2,7 @@ import { Router } from "express";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { ASSET_IDS, isValidAsset, DEFAULT_ASSET } from "../assets.js";
+import { isValidAsset, DEFAULT_ASSET } from "../assets.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, "../../local_data/portfolio.json");
@@ -47,7 +47,6 @@ function migratePortfolio(portfolio) {
 
   // Transaction migration
   if (portfolio.transactions) {
-    let changed = false;
     portfolio.transactions = portfolio.transactions.map((t) => {
       const updates = {};
 
@@ -68,11 +67,9 @@ function migratePortfolio(portfolio) {
       // Multi-asset migration: add asset field, rename amountBtc → amountCrypto
       if (!t.asset) {
         updates.asset = DEFAULT_ASSET;
-        changed = true;
       }
       if (t.amountCrypto == null && t.amountBtc != null) {
         updates.amountCrypto = t.amountBtc;
-        changed = true;
       }
 
       if (Object.keys(updates).length === 0) return t;

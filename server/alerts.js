@@ -228,7 +228,7 @@ export async function checkAlerts() {
         lastPrice: current.price,
       };
     } catch (err) {
-      console.error(`Alert check failed for ${assetId}:`, err.message);
+      console.error(`Alert check failed for ${assetId}:`, err.message); // nosemgrep: unsafe-formatstring
     }
   }
 
@@ -282,7 +282,7 @@ export async function checkAlerts() {
   }
 }
 
-function buildEmailHtml(alerts, currency) {
+function buildEmailHtml(alerts) {
   const colors = {
     buy: {
       bg: "#ecfdf5",

@@ -9,4 +9,7 @@ local_data/
 .idea/
 .claude/
 .last-build
+.policy/
 CLAUDE.md
+CLAUDE.local.md
+AGENTS.md

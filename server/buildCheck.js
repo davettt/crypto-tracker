@@ -19,7 +19,7 @@ function newestMtime(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (SKIP_DIRS.has(entry.name)) continue;
-      const full = path.join(dir, entry.name);
+      const full = path.join(dir, entry.name); // nosemgrep: path-join-resolve-traversal
       if (entry.isDirectory()) {
         newest = Math.max(newest, newestMtime(full));
       } else {
@@ -34,7 +34,7 @@ function newestMtime(dir) {
   return newest;
 }
 
-let _stale = false;
+let stale = false;
 
 try {
   const markerPath = path.join(ROOT, ".last-build");
@@ -43,15 +43,14 @@ try {
     newestMtime(path.join(ROOT, "src")),
     newestMtime(path.join(ROOT, "server")),
   );
-  _stale = srcTime > buildTime;
-  if (_stale) {
+  stale = srcTime > buildTime;
+  if (stale) {
     console.warn(
       "⚠ Build is stale — source files changed since last build. Run: npm run restart:pm2",
     );
   }
 } catch {
-  // No .last-build marker — first build hasn't run yet, or marker was deleted
-  _stale = false;
+  // No .last-build marker — first build hasn't run yet; stale stays false
 }
 
-export const buildStale = _stale;
+export const buildStale = stale;

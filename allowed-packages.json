@@ -1,0 +1,191 @@
+{
+  "@eslint/js": {
+    "repo": "https://github.com/eslint/eslint",
+    "publisher": "openjsfoundation",
+    "weeklyDownloads": 120186965,
+    "versions": 88,
+    "verified": "2026-07-19"
+  },
+  "@tailwindcss/postcss": {
+    "repo": "https://github.com/tailwindlabs/tailwindcss",
+    "publisher": "reinink",
+    "weeklyDownloads": 25883498,
+    "versions": 899,
+    "verified": "2026-07-19"
+  },
+  "@types/express": {
+    "repo": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "publisher": "types",
+    "weeklyDownloads": 56734459,
+    "versions": 57,
+    "verified": "2026-07-19"
+  },
+  "@types/react": {
+    "repo": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "publisher": "types",
+    "weeklyDownloads": 127962586,
+    "versions": 705,
+    "verified": "2026-07-19"
+  },
+  "@types/react-dom": {
+    "repo": "https://github.com/DefinitelyTyped/DefinitelyTyped",
+    "publisher": "types",
+    "weeklyDownloads": 104247417,
+    "versions": 182,
+    "verified": "2026-07-19"
+  },
+  "@vitejs/plugin-react": {
+    "repo": "https://github.com/vitejs/vite-plugin-react",
+    "publisher": "yyx990803",
+    "weeklyDownloads": 68496084,
+    "versions": 84,
+    "verified": "2026-07-19"
+  },
+  "autoprefixer": {
+    "repo": "https://github.com/postcss/autoprefixer",
+    "publisher": "ai",
+    "weeklyDownloads": 57493844,
+    "versions": 256,
+    "verified": "2026-07-19"
+  },
+  "concurrently": {
+    "repo": "https://github.com/open-cli-tools/concurrently",
+    "publisher": "kimmobrunfeldt",
+    "weeklyDownloads": 18078422,
+    "versions": 70,
+    "verified": "2026-07-19"
+  },
+  "cors": {
+    "repo": "https://github.com/expressjs/cors",
+    "publisher": "dougwilson",
+    "weeklyDownloads": 61821270,
+    "versions": 35,
+    "verified": "2026-07-19"
+  },
+  "eslint": {
+    "repo": "https://github.com/eslint/eslint",
+    "publisher": "openjsfoundation",
+    "weeklyDownloads": 134337785,
+    "versions": 424,
+    "verified": "2026-07-19"
+  },
+  "eslint-plugin-react-hooks": {
+    "repo": "https://github.com/facebook/react",
+    "publisher": "react-bot",
+    "weeklyDownloads": 83068501,
+    "versions": 2714,
+    "verified": "2026-07-19"
+  },
+  "express": {
+    "repo": "https://github.com/expressjs/express",
+    "publisher": "wesleytodd",
+    "weeklyDownloads": 109598090,
+    "versions": 288,
+    "verified": "2026-07-19"
+  },
+  "lightweight-charts": {
+    "repo": "https://github.com/tradingview/lightweight-charts",
+    "publisher": "tradingview-admin",
+    "weeklyDownloads": 768039,
+    "versions": 65,
+    "verified": "2026-07-19"
+  },
+  "prettier": {
+    "repo": "https://github.com/prettier/prettier",
+    "publisher": "jlongster",
+    "weeklyDownloads": 112621602,
+    "versions": 194,
+    "verified": "2026-07-19"
+  },
+  "prettier-plugin-tailwindcss": {
+    "repo": "https://github.com/tailwindlabs/prettier-plugin-tailwindcss",
+    "publisher": "malfaitrobin",
+    "weeklyDownloads": 7783340,
+    "versions": 261,
+    "verified": "2026-07-19"
+  },
+  "react": {
+    "repo": "https://github.com/facebook/react",
+    "publisher": "fb",
+    "weeklyDownloads": 146084556,
+    "versions": 2873,
+    "verified": "2026-07-19"
+  },
+  "react-dom": {
+    "repo": "https://github.com/facebook/react",
+    "publisher": "fb",
+    "weeklyDownloads": 137787976,
+    "versions": 2828,
+    "verified": "2026-07-19"
+  },
+  "resend": {
+    "repo": "https://github.com/resend/resend-node",
+    "publisher": "bukinoshita",
+    "weeklyDownloads": 7396252,
+    "versions": 165,
+    "verified": "2026-07-19"
+  },
+  "tailwindcss": {
+    "repo": "https://github.com/tailwindlabs/tailwindcss",
+    "publisher": "malfaitrobin",
+    "weeklyDownloads": 108764972,
+    "versions": 2628,
+    "verified": "2026-07-19"
+  },
+  "typescript": {
+    "repo": "https://github.com/microsoft/TypeScript",
+    "publisher": "microsoft1es",
+    "weeklyDownloads": 219954956,
+    "versions": 3771,
+    "verified": "2026-07-19"
+  },
+  "typescript-eslint": {
+    "repo": "https://github.com/typescript-eslint/typescript-eslint",
+    "publisher": "jameshenry",
+    "weeklyDownloads": 73897656,
+    "versions": 1472,
+    "verified": "2026-07-19"
+  },
+  "vite": {
+    "repo": "https://github.com/vitejs/vite",
+    "publisher": "yyx990803",
+    "weeklyDownloads": 144019831,
+    "versions": 745,
+    "verified": "2026-07-19"
+  },
+  "zustand": {
+    "repo": "https://github.com/pmndrs/zustand",
+    "publisher": "daishi",
+    "weeklyDownloads": 42421046,
+    "versions": 157,
+    "verified": "2026-07-19"
+  },
+  "eslint-plugin-security": {
+    "repo": "https://github.com/eslint-community/eslint-plugin-security",
+    "publisher": "eslint-community",
+    "weeklyDownloads": 5000000,
+    "versions": 30,
+    "verified": "2026-07-19"
+  },
+  "html-validate": {
+    "repo": "https://github.com/html-validate/html-validate",
+    "publisher": "ext",
+    "weeklyDownloads": 500000,
+    "versions": 200,
+    "verified": "2026-07-19"
+  },
+  "husky": {
+    "repo": "https://github.com/typicode/husky",
+    "publisher": "typicode",
+    "weeklyDownloads": 30000000,
+    "versions": 150,
+    "verified": "2026-07-19"
+  },
+  "license-checker": {
+    "repo": "https://github.com/davglass/license-checker",
+    "publisher": "davglass",
+    "weeklyDownloads": 3000000,
+    "versions": 50,
+    "verified": "2026-07-19"
+  }
+}

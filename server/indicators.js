@@ -212,7 +212,7 @@ export function generateSignals(
   weeklyPrices,
   currentPrice,
   ath,
-  assetId = null,
+  _assetId = null,
 ) {
   const weeklyRsi = rsi(weeklyPrices, 14);
   const ma200 = sma(dailyPrices, 200);
@@ -406,7 +406,6 @@ export function generateSignals(
 
   // Floor Detection — price stability + MA convergence + RSI recovery
   const convergence = maConvergence(dailyPrices, ma200);
-  const latestRsiValue = latestWeeklyRsi?.value;
   const rsiWithValues = weeklyRsi.filter((r) => r.value !== null);
   const last12Rsi = rsiWithValues.slice(-12);
   const hadWashout =
