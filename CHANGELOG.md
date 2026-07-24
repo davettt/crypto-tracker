@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.1] - 2026-07-25
+
+### Added
+
+- Added `.prettierrc` for consistent house style compliance
+
+### Changed
+
+- Reformatted all source files to match Prettier house style
+- Synced CI workflow with shared build-policy template
+- Updated dependencies: @vitejs/plugin-react, prettier, prettier-plugin-tailwindcss, react, react-dom, resend, typescript-eslint
+
+### Fixed
+
+- Resolved high-severity `fast-uri` vulnerability
+
 ## [2.5.0] - 2026-05-03
 
 ### Security & Quality

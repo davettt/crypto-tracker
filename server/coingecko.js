@@ -1,13 +1,13 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import { ASSET_IDS } from "./assets.js";
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { ASSET_IDS } from './assets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = path.join(__dirname, "../local_data");
+const CACHE_DIR = path.join(__dirname, '../local_data');
 
 // CoinGecko free API — no key needed, 10-30 calls/min
-const BASE = "https://api.coingecko.com/api/v3";
+const BASE = 'https://api.coingecko.com/api/v3';
 const FOUR_HOURS = 4 * 60 * 60 * 1000;
 
 // In-memory cache for all API responses (survives across requests, clears on restart)
@@ -35,9 +35,7 @@ async function rateLimitedFetch(url) {
       // Respect global cooldown from prior 429
       const cooldownWait = Math.max(0, rateLimitedUntil - Date.now());
       if (cooldownWait > 0) {
-        console.warn(
-          `Rate limit cooldown: waiting ${Math.ceil(cooldownWait / 1000)}s`,
-        );
+        console.warn(`Rate limit cooldown: waiting ${Math.ceil(cooldownWait / 1000)}s`);
         await new Promise((r) => setTimeout(r, cooldownWait));
       }
 
@@ -57,10 +55,9 @@ async function rateLimitedFetch(url) {
           await new Promise((r) => setTimeout(r, RETRY_BACKOFF));
           continue;
         }
-        throw new Error("CoinGecko rate limit exceeded — try again later");
+        throw new Error('CoinGecko rate limit exceeded — try again later');
       }
-      if (!res.ok)
-        throw new Error(`CoinGecko ${res.status}: ${res.statusText}`);
+      if (!res.ok) throw new Error(`CoinGecko ${res.status}: ${res.statusText}`);
       return res.json();
     }
   });
@@ -102,7 +99,7 @@ function historyFile(coinId, currency) {
 
 async function loadCache(coinId, currency) {
   try {
-    const raw = await fs.readFile(cacheFile(coinId, currency), "utf8");
+    const raw = await fs.readFile(cacheFile(coinId, currency), 'utf8');
     return JSON.parse(raw);
   } catch {
     return null;
@@ -116,7 +113,7 @@ async function saveCache(coinId, currency, data) {
 
 async function loadHistory(coinId, currency) {
   try {
-    const raw = await fs.readFile(historyFile(coinId, currency), "utf8");
+    const raw = await fs.readFile(historyFile(coinId, currency), 'utf8');
     return JSON.parse(raw);
   } catch {
     return {};
@@ -137,30 +134,28 @@ async function saveHistory(coinId, currency, history) {
  */
 async function migrateOldFiles() {
   // Legacy pre-asset-prefix files
-  const legacyCache = path.join(CACHE_DIR, "price_cache.json");
-  const legacyHistory = path.join(CACHE_DIR, "price_history.json");
+  const legacyCache = path.join(CACHE_DIR, 'price_cache.json');
+  const legacyHistory = path.join(CACHE_DIR, 'price_history.json');
   try {
     await fs.access(legacyCache);
-    const target = cacheFile("bitcoin", "usd");
+    const target = cacheFile('bitcoin', 'usd');
     try {
       await fs.access(target);
     } catch {
       await fs.rename(legacyCache, target);
-      console.log("Migrated price_cache.json → price_cache_bitcoin_usd.json");
+      console.log('Migrated price_cache.json → price_cache_bitcoin_usd.json');
     }
   } catch {
     /* no legacy file */
   }
   try {
     await fs.access(legacyHistory);
-    const target = historyFile("bitcoin", "usd");
+    const target = historyFile('bitcoin', 'usd');
     try {
       await fs.access(target);
     } catch {
       await fs.rename(legacyHistory, target);
-      console.log(
-        "Migrated price_history.json → price_history_bitcoin_usd.json",
-      );
+      console.log('Migrated price_history.json → price_history_bitcoin_usd.json');
     }
   } catch {
     /* no legacy file */
@@ -172,28 +167,24 @@ async function migrateOldFiles() {
     const oldHistory = path.join(CACHE_DIR, `price_history_${coinId}.json`);
     try {
       await fs.access(oldCache);
-      const target = cacheFile(coinId, "usd");
+      const target = cacheFile(coinId, 'usd');
       try {
         await fs.access(target);
       } catch {
         await fs.rename(oldCache, target);
-        console.log(
-          `Migrated price_cache_${coinId}.json → price_cache_${coinId}_usd.json`,
-        );
+        console.log(`Migrated price_cache_${coinId}.json → price_cache_${coinId}_usd.json`);
       }
     } catch {
       /* no old file */
     }
     try {
       await fs.access(oldHistory);
-      const target = historyFile(coinId, "usd");
+      const target = historyFile(coinId, 'usd');
       try {
         await fs.access(target);
       } catch {
         await fs.rename(oldHistory, target);
-        console.log(
-          `Migrated price_history_${coinId}.json → price_history_${coinId}_usd.json`,
-        );
+        console.log(`Migrated price_history_${coinId}.json → price_history_${coinId}_usd.json`);
       }
     } catch {
       /* no old file */
@@ -251,7 +242,7 @@ export async function invalidateCache(coinId) {
     const prefix = `price_cache_${coinId}_`;
     await Promise.all(
       entries
-        .filter((e) => e.startsWith(prefix) && e.endsWith(".json"))
+        .filter((e) => e.startsWith(prefix) && e.endsWith('.json'))
         .map((e) => fs.unlink(path.join(CACHE_DIR, e)).catch(() => {})), // nosemgrep: path-join-resolve-traversal
     );
   } catch {
@@ -266,7 +257,7 @@ export async function invalidateCache(coinId) {
  */
 const historyInflight = {};
 
-export async function getPriceHistory(coinId = "bitcoin", currency = "usd") {
+export async function getPriceHistory(coinId = 'bitcoin', currency = 'usd') {
   const vs = currency.toLowerCase();
   const key = `${coinId}_${vs}`;
   const cache = await loadCache(coinId, vs);
@@ -284,7 +275,7 @@ export async function getPriceHistory(coinId = "bitcoin", currency = "usd") {
     );
 
     const prices = data.prices.map(([ts, price]) => ({
-      date: new Date(ts).toISOString().split("T")[0],
+      date: new Date(ts).toISOString().split('T')[0],
       timestamp: ts,
       price,
     }));
@@ -305,7 +296,7 @@ export async function getPriceHistory(coinId = "bitcoin", currency = "usd") {
 /**
  * Fetch current coin data (price, ATH, market cap).
  */
-export async function getCoinCurrent(coinId = "bitcoin", homeCurrency = "usd") {
+export async function getCoinCurrent(coinId = 'bitcoin', homeCurrency = 'usd') {
   const data = await fetchJsonCached(
     `${BASE}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false`,
   );
@@ -331,7 +322,7 @@ export async function getCoinCurrent(coinId = "bitcoin", homeCurrency = "usd") {
  * Fetch Fear & Greed Index (alternative.me) — Bitcoin-specific
  */
 export async function getFearGreedIndex() {
-  const url = "https://api.alternative.me/fng/?limit=30";
+  const url = 'https://api.alternative.me/fng/?limit=30';
   const cached = memCache[url];
   if (cached && Date.now() - cached.at < FOUR_HOURS) {
     return cached.data;
@@ -342,9 +333,7 @@ export async function getFearGreedIndex() {
   const result = data.data.map((d) => ({
     value: parseInt(d.value, 10),
     classification: d.value_classification,
-    date: new Date(parseInt(d.timestamp, 10) * 1000)
-      .toISOString()
-      .split("T")[0],
+    date: new Date(parseInt(d.timestamp, 10) * 1000).toISOString().split('T')[0],
   }));
   memCache[url] = { data: result, at: Date.now() };
   return result;
@@ -354,9 +343,9 @@ export async function getFearGreedIndex() {
  * Get exchange rates relative to the home currency.
  * Fetches prices for all tracked coins in one call.
  */
-export async function getExchangeRates(homeCurrency = "usd") {
-  const currencies = "usd,aud,gbp,eur,jpy,nzd,sgd,cad";
-  const coinIds = ASSET_IDS.join(",");
+export async function getExchangeRates(homeCurrency = 'usd') {
+  const currencies = 'usd,aud,gbp,eur,jpy,nzd,sgd,cad';
+  const coinIds = ASSET_IDS.join(',');
   const data = await fetchJsonCached(
     `${BASE}/simple/price?ids=${coinIds}&vs_currencies=${currencies}`,
   );

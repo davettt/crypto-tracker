@@ -1,38 +1,32 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   getPriceHistory,
   getCoinCurrent,
   getFearGreedIndex,
   getExchangeRates,
   invalidateCache,
-} from "../coingecko.js";
-import {
-  toWeekly,
-  sma,
-  rsi,
-  mayerMultiple,
-  generateSignals,
-} from "../indicators.js";
-import { loadPortfolio } from "./portfolio.js";
-import { ASSETS, DEFAULT_ASSET, isValidAsset } from "../assets.js";
+} from '../coingecko.js';
+import { toWeekly, sma, rsi, mayerMultiple, generateSignals } from '../indicators.js';
+import { loadPortfolio } from './portfolio.js';
+import { ASSETS, DEFAULT_ASSET, isValidAsset } from '../assets.js';
 
 const router = Router();
 
 // GET /api/market/overview — current price, signals, fear & greed
-router.get("/overview", async (req, res) => {
+router.get('/overview', async (req, res) => {
   try {
     const assetId = req.query.asset ?? DEFAULT_ASSET;
     if (!isValidAsset(assetId)) {
-      return res.status(400).json({ error: "Unknown asset" });
+      return res.status(400).json({ error: 'Unknown asset' });
     }
     const asset = ASSETS[assetId];
 
-    if (req.query.force === "true") {
+    if (req.query.force === 'true') {
       await invalidateCache(assetId);
     }
 
     const portfolio = await loadPortfolio();
-    const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
+    const homeCurrency = portfolio.settings?.homeCurrency ?? 'USD';
 
     const promises = [
       getPriceHistory(assetId, homeCurrency),
@@ -71,25 +65,25 @@ router.get("/overview", async (req, res) => {
       asset: assetId,
     });
   } catch (err) {
-    console.error("Overview error:", err);
+    console.error('Overview error:', err);
     res.status(500).json({ error: String(err) });
   }
 });
 
 // GET /api/market/chart — price history with indicators for charting
-router.get("/chart", async (req, res) => {
+router.get('/chart', async (req, res) => {
   try {
     const assetId = req.query.asset ?? DEFAULT_ASSET;
     if (!isValidAsset(assetId)) {
-      return res.status(400).json({ error: "Unknown asset" });
+      return res.status(400).json({ error: 'Unknown asset' });
     }
 
-    if (req.query.force === "true") {
+    if (req.query.force === 'true') {
       await invalidateCache(assetId);
     }
 
     const portfolio = await loadPortfolio();
-    const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
+    const homeCurrency = portfolio.settings?.homeCurrency ?? 'USD';
 
     const [dailyPrices, current] = await Promise.all([
       getPriceHistory(assetId, homeCurrency),
@@ -98,13 +92,11 @@ router.get("/chart", async (req, res) => {
 
     // Historical and current price are both in homeCurrency. Append the live
     // price as today's data point so the chart matches the header exactly.
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split('T')[0];
     const lastDay = dailyPrices[dailyPrices.length - 1];
     const withLive =
       lastDay && lastDay.date === today
-        ? dailyPrices.map((d) =>
-            d === lastDay ? { ...d, price: current.price } : d,
-          )
+        ? dailyPrices.map((d) => (d === lastDay ? { ...d, price: current.price } : d))
         : [
             ...dailyPrices,
             {
@@ -138,7 +130,7 @@ router.get("/chart", async (req, res) => {
       asset: assetId,
     });
   } catch (err) {
-    console.error("Chart error:", err);
+    console.error('Chart error:', err);
     res.status(500).json({ error: String(err) });
   }
 });

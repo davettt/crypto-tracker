@@ -16,7 +16,7 @@ export function toWeekly(dailyPrices) {
     const oneJan = new Date(year, 0, 1);
     const dayOfYear = Math.ceil((dt - oneJan) / 86400000) + 1;
     const weekNum = Math.ceil(dayOfYear / 7);
-    const key = `${year}-W${String(weekNum).padStart(2, "0")}`;
+    const key = `${year}-W${String(weekNum).padStart(2, '0')}`;
     weeks.set(key, d); // last entry for each week wins
   }
   return Array.from(weeks.values());
@@ -109,16 +109,11 @@ export function rsi(prices, period = 14) {
       // RSI = 100 - 100/(1+RS), RS = avgGain/avgLoss
       // Instead, just use smoothed calculation
       const prevAvgGain =
-        i === period
-          ? gains.reduce((s, g) => s + g, 0) / period
-          : result[i - 1]._avgGain;
+        i === period ? gains.reduce((s, g) => s + g, 0) / period : result[i - 1]._avgGain;
       const prevAvgLoss =
-        i === period
-          ? losses.reduce((s, l) => s + l, 0) / period
-          : result[i - 1]._avgLoss;
+        i === period ? losses.reduce((s, l) => s + l, 0) / period : result[i - 1]._avgLoss;
       avgGain = (prevAvgGain * (period - 1) + gains[gains.length - 1]) / period;
-      avgLoss =
-        (prevAvgLoss * (period - 1) + losses[losses.length - 1]) / period;
+      avgLoss = (prevAvgLoss * (period - 1) + losses[losses.length - 1]) / period;
     }
 
     const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
@@ -144,9 +139,7 @@ export function mayerMultiple(dailyPrices) {
   const ma200 = sma(dailyPrices, 200);
   return dailyPrices.map((d, i) => ({
     date: d.date,
-    value: ma200[i].value
-      ? Math.round((d.price / ma200[i].value) * 1000) / 1000
-      : null,
+    value: ma200[i].value ? Math.round((d.price / ma200[i].value) * 1000) / 1000 : null,
   }));
 }
 
@@ -195,25 +188,14 @@ export function maConvergence(dailyPrices, ma200) {
     gapPrev: Math.round(gapPrev * 10) / 10,
     priceRange: Math.round(priceRange * 10) / 10,
     maSlope: Math.round(maSlope * 10) / 10,
-    converging:
-      maAbovePrice &&
-      maDeclining &&
-      gapNarrowing &&
-      priceStable &&
-      gapCloseEnough,
+    converging: maAbovePrice && maDeclining && gapNarrowing && priceStable && gapCloseEnough,
   };
 }
 
 /**
  * Generate buy/sell signals based on multiple indicators.
  */
-export function generateSignals(
-  dailyPrices,
-  weeklyPrices,
-  currentPrice,
-  ath,
-  _assetId = null,
-) {
+export function generateSignals(dailyPrices, weeklyPrices, currentPrice, ath, _assetId = null) {
   const weeklyRsi = rsi(weeklyPrices, 14);
   const ma200 = sma(dailyPrices, 200);
   const ma200w = sma(weeklyPrices, 200);
@@ -231,41 +213,41 @@ export function generateSignals(
   if (latestWeeklyRsi?.value != null) {
     if (latestWeeklyRsi.value < 30) {
       signals.push({
-        type: "buy",
-        strength: "strong",
-        indicator: "Weekly RSI",
+        type: 'buy',
+        strength: 'strong',
+        indicator: 'Weekly RSI',
         value: latestWeeklyRsi.value,
         message: `Weekly RSI at ${latestWeeklyRsi.value} — oversold territory. Historically a strong buy zone.`,
       });
     } else if (latestWeeklyRsi.value < 40) {
       signals.push({
-        type: "buy",
-        strength: "moderate",
-        indicator: "Weekly RSI",
+        type: 'buy',
+        strength: 'moderate',
+        indicator: 'Weekly RSI',
         value: latestWeeklyRsi.value,
         message: `Weekly RSI at ${latestWeeklyRsi.value} — approaching oversold. Worth watching.`,
       });
     } else if (latestWeeklyRsi.value > 80) {
       signals.push({
-        type: "sell",
-        strength: "strong",
-        indicator: "Weekly RSI",
+        type: 'sell',
+        strength: 'strong',
+        indicator: 'Weekly RSI',
         value: latestWeeklyRsi.value,
         message: `Weekly RSI at ${latestWeeklyRsi.value} — overbought. Consider taking some profits.`,
       });
     } else if (latestWeeklyRsi.value > 70) {
       signals.push({
-        type: "sell",
-        strength: "moderate",
-        indicator: "Weekly RSI",
+        type: 'sell',
+        strength: 'moderate',
+        indicator: 'Weekly RSI',
         value: latestWeeklyRsi.value,
         message: `Weekly RSI at ${latestWeeklyRsi.value} — getting hot. Monitor for peak.`,
       });
     } else {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "Weekly RSI",
+        type: 'neutral',
+        strength: 'none',
+        indicator: 'Weekly RSI',
         value: latestWeeklyRsi.value,
         message: `Weekly RSI at ${latestWeeklyRsi.value} — neutral range.`,
       });
@@ -274,31 +256,30 @@ export function generateSignals(
 
   // 200-day MA signal
   if (latestMa200?.value != null) {
-    const pctAbove =
-      ((currentPrice - latestMa200.value) / latestMa200.value) * 100;
+    const pctAbove = ((currentPrice - latestMa200.value) / latestMa200.value) * 100;
     if (pctAbove < -20) {
       signals.push({
-        type: "buy",
-        strength: "strong",
-        indicator: "200-Day MA",
+        type: 'buy',
+        strength: 'strong',
+        indicator: '200-Day MA',
         value: Math.round(latestMa200.value),
         maValue: latestMa200.value,
         message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA {ma}. Deep value territory.`,
       });
     } else if (pctAbove < 0) {
       signals.push({
-        type: "buy",
-        strength: "moderate",
-        indicator: "200-Day MA",
+        type: 'buy',
+        strength: 'moderate',
+        indicator: '200-Day MA',
         value: Math.round(latestMa200.value),
         maValue: latestMa200.value,
         message: `Price ${Math.abs(Math.round(pctAbove))}% below 200-day MA {ma}. Below long-term trend.`,
       });
     } else {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "200-Day MA",
+        type: 'neutral',
+        strength: 'none',
+        indicator: '200-Day MA',
         value: Math.round(latestMa200.value),
         maValue: latestMa200.value,
         message: `Price ${Math.round(pctAbove)}% above 200-day MA {ma}.`,
@@ -308,31 +289,30 @@ export function generateSignals(
 
   // 200-week MA signal — only available once we have 200+ weeks of history
   if (latestMa200w?.value != null) {
-    const pctAbove =
-      ((currentPrice - latestMa200w.value) / latestMa200w.value) * 100;
+    const pctAbove = ((currentPrice - latestMa200w.value) / latestMa200w.value) * 100;
     if (pctAbove < 0) {
       signals.push({
-        type: "buy",
-        strength: "strong",
-        indicator: "200-Week MA",
+        type: 'buy',
+        strength: 'strong',
+        indicator: '200-Week MA',
         value: Math.round(latestMa200w.value),
         maValue: latestMa200w.value,
         message: `Price ${Math.abs(Math.round(pctAbove))}% BELOW 200-week MA {ma}! Historically the best buy zone in Bitcoin's history.`,
       });
     } else if (pctAbove < 50) {
       signals.push({
-        type: "buy",
-        strength: "moderate",
-        indicator: "200-Week MA",
+        type: 'buy',
+        strength: 'moderate',
+        indicator: '200-Week MA',
         value: Math.round(latestMa200w.value),
         maValue: latestMa200w.value,
         message: `Price ${Math.round(pctAbove)}% above 200-week MA {ma}. Still relatively close to long-term support.`,
       });
     } else {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "200-Week MA",
+        type: 'neutral',
+        strength: 'none',
+        indicator: '200-Week MA',
         value: Math.round(latestMa200w.value),
         maValue: latestMa200w.value,
         message: `Price ${Math.round(pctAbove)}% above 200-week MA {ma}.`,
@@ -344,25 +324,25 @@ export function generateSignals(
   if (latestMayer?.value != null) {
     if (latestMayer.value < 0.8) {
       signals.push({
-        type: "buy",
-        strength: "strong",
-        indicator: "Mayer Multiple",
+        type: 'buy',
+        strength: 'strong',
+        indicator: 'Mayer Multiple',
         value: latestMayer.value,
         message: `Mayer Multiple at ${latestMayer.value} — below 0.8 is historically a strong accumulation zone.`,
       });
     } else if (latestMayer.value > 2.4) {
       signals.push({
-        type: "sell",
-        strength: "strong",
-        indicator: "Mayer Multiple",
+        type: 'sell',
+        strength: 'strong',
+        indicator: 'Mayer Multiple',
         value: latestMayer.value,
         message: `Mayer Multiple at ${latestMayer.value} — above 2.4 historically signals overheating.`,
       });
     } else {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "Mayer Multiple",
+        type: 'neutral',
+        strength: 'none',
+        indicator: 'Mayer Multiple',
         value: latestMayer.value,
         message: `Mayer Multiple at ${latestMayer.value} — normal range.`,
       });
@@ -372,33 +352,33 @@ export function generateSignals(
   // ATH drawdown
   if (athDrawdown < -60) {
     signals.push({
-      type: "buy",
-      strength: "strong",
-      indicator: "ATH Drawdown",
+      type: 'buy',
+      strength: 'strong',
+      indicator: 'ATH Drawdown',
       value: Math.round(athDrawdown),
       message: `${Math.round(athDrawdown)}% from ATH. Drawdowns of 60%+ have historically been prime accumulation zones.`,
     });
   } else if (athDrawdown < -40) {
     signals.push({
-      type: "buy",
-      strength: "moderate",
-      indicator: "ATH Drawdown",
+      type: 'buy',
+      strength: 'moderate',
+      indicator: 'ATH Drawdown',
       value: Math.round(athDrawdown),
       message: `${Math.round(athDrawdown)}% from ATH. Significant correction — worth watching for further dip.`,
     });
   } else if (athDrawdown > -5) {
     signals.push({
-      type: "sell",
-      strength: "moderate",
-      indicator: "ATH Drawdown",
+      type: 'sell',
+      strength: 'moderate',
+      indicator: 'ATH Drawdown',
       value: Math.round(athDrawdown),
       message: `Near all-time high (${Math.round(athDrawdown)}%). Historically risky to buy at peaks.`,
     });
   } else {
     signals.push({
-      type: "neutral",
-      strength: "none",
-      indicator: "ATH Drawdown",
+      type: 'neutral',
+      strength: 'none',
+      indicator: 'ATH Drawdown',
       value: Math.round(athDrawdown),
       message: `${Math.round(athDrawdown)}% from ATH.`,
     });
@@ -408,15 +388,10 @@ export function generateSignals(
   const convergence = maConvergence(dailyPrices, ma200);
   const rsiWithValues = weeklyRsi.filter((r) => r.value !== null);
   const last12Rsi = rsiWithValues.slice(-12);
-  const hadWashout =
-    last12Rsi.length >= 4 && last12Rsi.some((r) => r.value < 40);
+  const hadWashout = last12Rsi.length >= 4 && last12Rsi.some((r) => r.value < 40);
   const last4Rsi = rsiWithValues.slice(-4);
-  const avgRecent =
-    last4Rsi.length === 4
-      ? last4Rsi.reduce((s, r) => s + r.value, 0) / 4
-      : null;
-  const rsiRecovered =
-    hadWashout && avgRecent != null && avgRecent >= 38 && avgRecent <= 60;
+  const avgRecent = last4Rsi.length === 4 ? last4Rsi.reduce((s, r) => s + r.value, 0) / 4 : null;
+  const rsiRecovered = hadWashout && avgRecent != null && avgRecent >= 38 && avgRecent <= 60;
   if (convergence) {
     const gapDirection =
       convergence.gapNow < 0
@@ -424,25 +399,25 @@ export function generateSignals(
         : `${convergence.gapNow}% above`;
     if (convergence.converging && rsiRecovered) {
       signals.push({
-        type: "buy",
-        strength: "moderate",
-        indicator: "Floor Detection",
+        type: 'buy',
+        strength: 'moderate',
+        indicator: 'Floor Detection',
         value: convergence.gapNow,
         message: `Price stable (${convergence.priceRange}% range over 30d) while 200-day MA converges from above (gap narrowed from ${Math.abs(convergence.gapPrev)}% to ${Math.abs(convergence.gapNow)}%). RSI recovered to ${Math.round(avgRecent * 10) / 10} avg after dipping below 40 in recent weeks. Potential natural floor forming — if other indicators suggest buying, further significant drops are less likely without new negative catalysts.`,
       });
     } else if (convergence.converging && !rsiRecovered) {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "Floor Detection",
+        type: 'neutral',
+        strength: 'none',
+        indicator: 'Floor Detection',
         value: convergence.gapNow,
-        message: `Price stable and 200-day MA converging (gap ${Math.abs(convergence.gapNow)}%), but RSI ${!hadWashout ? "has not been oversold recently" : avgRecent != null && avgRecent < 38 ? `still low (4-week avg ${Math.round(avgRecent * 10) / 10})` : "not yet showing recovery"} — buying momentum not yet confirmed.`,
+        message: `Price stable and 200-day MA converging (gap ${Math.abs(convergence.gapNow)}%), but RSI ${!hadWashout ? 'has not been oversold recently' : avgRecent != null && avgRecent < 38 ? `still low (4-week avg ${Math.round(avgRecent * 10) / 10})` : 'not yet showing recovery'} — buying momentum not yet confirmed.`,
       });
     } else {
       signals.push({
-        type: "neutral",
-        strength: "none",
-        indicator: "Floor Detection",
+        type: 'neutral',
+        strength: 'none',
+        indicator: 'Floor Detection',
         value: convergence.gapNow,
         message: `Price ${gapDirection} 200-day MA. No convergence pattern detected.`,
       });
@@ -450,47 +425,44 @@ export function generateSignals(
   }
 
   // Overall assessment
-  const buySignals = signals.filter((s) => s.type === "buy");
-  const sellSignals = signals.filter((s) => s.type === "sell");
-  const strongBuys = buySignals.filter((s) => s.strength === "strong").length;
-  const strongSells = sellSignals.filter((s) => s.strength === "strong").length;
+  const buySignals = signals.filter((s) => s.type === 'buy');
+  const sellSignals = signals.filter((s) => s.type === 'sell');
+  const strongBuys = buySignals.filter((s) => s.strength === 'strong').length;
+  const strongSells = sellSignals.filter((s) => s.strength === 'strong').length;
 
   let overall;
   if (strongBuys >= 3) {
     overall = {
-      action: "STRONG BUY",
+      action: 'STRONG BUY',
       description:
-        "Multiple indicators showing deep value. This is the kind of dip long-term holders wait for.",
+        'Multiple indicators showing deep value. This is the kind of dip long-term holders wait for.',
     };
   } else if (strongBuys >= 2 || buySignals.length >= 3) {
     overall = {
-      action: "BUY",
-      description:
-        "Several indicators suggest good value. Consider accumulating.",
+      action: 'BUY',
+      description: 'Several indicators suggest good value. Consider accumulating.',
     };
   } else if (buySignals.length >= 2) {
     overall = {
-      action: "ACCUMULATE",
-      description:
-        "Some buy signals present. DCA (dollar-cost average) could work here.",
+      action: 'ACCUMULATE',
+      description: 'Some buy signals present. DCA (dollar-cost average) could work here.',
     };
   } else if (strongSells >= 2) {
     overall = {
-      action: "CONSIDER SELLING",
+      action: 'CONSIDER SELLING',
       description:
-        "Multiple indicators showing overheated conditions. Consider taking some profits.",
+        'Multiple indicators showing overheated conditions. Consider taking some profits.',
     };
   } else if (sellSignals.length >= 2) {
     overall = {
-      action: "CAUTION",
+      action: 'CAUTION',
       description:
-        "Some sell signals appearing. Not necessarily time to sell, but be aware of elevated risk.",
+        'Some sell signals appearing. Not necessarily time to sell, but be aware of elevated risk.',
     };
   } else {
     overall = {
-      action: "HOLD",
-      description:
-        "No strong buy or sell signals. If you already hold, stay the course.",
+      action: 'HOLD',
+      description: 'No strong buy or sell signals. If you already hold, stay the course.',
     };
   }
 

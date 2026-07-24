@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface AlertConfig {
   enabled: boolean;
@@ -14,19 +14,19 @@ interface AlertConfig {
 export default function AlertSettings() {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState<AlertConfig | null>(null);
-  const [apiKey, setApiKey] = useState("");
+  const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<{
-    type: "success" | "error";
+    type: 'success' | 'error';
     text: string;
   } | null>(null);
   useEffect(() => {
-    void fetch("/api/alerts/settings")
+    void fetch('/api/alerts/settings')
       .then((r) => r.json())
       .then((data: AlertConfig) => {
         setConfig(data);
-        setApiKey("");
+        setApiKey('');
       });
   }, []);
 
@@ -44,9 +44,9 @@ export default function AlertSettings() {
       if (apiKey) body.resendApiKey = apiKey;
       else delete body.resendApiKey;
 
-      const res = await fetch("/api/alerts/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/alerts/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -55,12 +55,12 @@ export default function AlertSettings() {
       }
       const updated = (await res.json()) as AlertConfig;
       setConfig(updated);
-      setApiKey("");
-      setMessage({ type: "success", text: "Settings saved" });
+      setApiKey('');
+      setMessage({ type: 'success', text: 'Settings saved' });
     } catch (err) {
       setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Save failed",
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Save failed',
       });
     } finally {
       setSaving(false);
@@ -71,19 +71,19 @@ export default function AlertSettings() {
     setTesting(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/alerts/test", { method: "POST" });
+      const res = await fetch('/api/alerts/test', { method: 'POST' });
       if (!res.ok) {
         const err = await res.json();
         throw new Error((err as { error: string }).error);
       }
       setMessage({
-        type: "success",
-        text: "Test email sent — check your inbox",
+        type: 'success',
+        text: 'Test email sent — check your inbox',
       });
     } catch (err) {
       setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Test failed",
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Test failed',
       });
     } finally {
       setTesting(false);
@@ -93,35 +93,28 @@ export default function AlertSettings() {
   async function handleCheckNow() {
     setMessage(null);
     try {
-      const res = await fetch("/api/alerts/check", { method: "POST" });
+      const res = await fetch('/api/alerts/check', { method: 'POST' });
       if (!res.ok) {
         const err = await res.json();
         throw new Error((err as { error: string }).error);
       }
       setMessage({
-        type: "success",
-        text: "Alert check completed — email sent if any triggers fired",
+        type: 'success',
+        text: 'Alert check completed — email sent if any triggers fired',
       });
     } catch (err) {
       setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Check failed",
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Check failed',
       });
     }
   }
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-gray-400 hover:text-gray-600"
-      >
-        Email Alerts{" "}
-        {config?.enabled ? (
-          <span className="text-green-500">(active)</span>
-        ) : (
-          "(disabled)"
-        )}
+      <button onClick={() => setOpen(true)} className="text-xs text-gray-400 hover:text-gray-600">
+        Email Alerts{' '}
+        {config?.enabled ? <span className="text-green-500">(active)</span> : '(disabled)'}
       </button>
     );
   }
@@ -136,16 +129,14 @@ export default function AlertSettings() {
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Email Alerts
-      </h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Email Alerts</h4>
 
       {message && (
         <div
           className={`mt-2 rounded-md p-2 text-xs ${
-            message.type === "success"
-              ? "border border-green-200 bg-green-50 text-green-700"
-              : "border border-red-200 bg-red-50 text-red-700"
+            message.type === 'success'
+              ? 'border border-green-200 bg-green-50 text-green-700'
+              : 'border border-red-200 bg-red-50 text-red-700'
           }`}
         >
           {message.text}
@@ -161,16 +152,12 @@ export default function AlertSettings() {
             onChange={(e) => update({ enabled: e.target.checked })}
             className="rounded"
           />
-          <span className="text-sm text-gray-700">
-            Enable email alerts (checked every 4 hours)
-          </span>
+          <span className="text-sm text-gray-700">Enable email alerts (checked every 4 hours)</span>
         </label>
 
         {/* Email */}
         <div>
-          <label className="block text-xs text-gray-500">
-            Alert email address
-          </label>
+          <label className="block text-xs text-gray-500">Alert email address</label>
           <input
             type="email"
             value={config.email}
@@ -187,23 +174,15 @@ export default function AlertSettings() {
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={
-              config.resendApiKey
-                ? "Key saved (enter new to replace)"
-                : "re_..."
-            }
+            placeholder={config.resendApiKey ? 'Key saved (enter new to replace)' : 're_...'}
             className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
           />
-          <p className="mt-0.5 text-xs text-gray-400">
-            Get one free at resend.com/api-keys
-          </p>
+          <p className="mt-0.5 text-xs text-gray-400">Get one free at resend.com/api-keys</p>
         </div>
 
         {/* From email */}
         <div>
-          <label className="block text-xs text-gray-500">
-            From email address
-          </label>
+          <label className="block text-xs text-gray-500">From email address</label>
           <input
             type="email"
             value={config.fromEmail}
@@ -219,17 +198,13 @@ export default function AlertSettings() {
 
         {/* Triggers */}
         <div>
-          <h5 className="text-xs font-semibold text-gray-500">
-            Alert Triggers
-          </h5>
+          <h5 className="text-xs font-semibold text-gray-500">Alert Triggers</h5>
 
           <label className="mt-2 flex items-center gap-2">
             <input
               type="checkbox"
               checked={config.signalChangeEnabled}
-              onChange={(e) =>
-                update({ signalChangeEnabled: e.target.checked })
-              }
+              onChange={(e) => update({ signalChangeEnabled: e.target.checked })}
               className="rounded"
             />
             <span className="text-sm text-gray-700">
@@ -239,9 +214,7 @@ export default function AlertSettings() {
 
           <div className="mt-2">
             <label className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">
-                24h price change exceeds
-              </span>
+              <span className="text-sm text-gray-700">24h price change exceeds</span>
               <input
                 type="number"
                 value={config.priceChangeThreshold}
@@ -266,9 +239,7 @@ export default function AlertSettings() {
             <input
               type="checkbox"
               checked={config.targetApproachEnabled}
-              onChange={(e) =>
-                update({ targetApproachEnabled: e.target.checked })
-              }
+              onChange={(e) => update({ targetApproachEnabled: e.target.checked })}
               className="rounded"
             />
             <span className="text-sm text-gray-700">
@@ -299,14 +270,14 @@ export default function AlertSettings() {
             disabled={saving}
             className="rounded-lg bg-gray-900 px-4 py-1.5 text-sm text-white hover:bg-gray-700 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? 'Saving...' : 'Save'}
           </button>
           <button
             onClick={() => void handleTest()}
             disabled={testing || !config.email || !config.resendApiKey}
             className="rounded-lg border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            {testing ? "Sending..." : "Send Test Email"}
+            {testing ? 'Sending...' : 'Send Test Email'}
           </button>
           <button
             onClick={() => void handleCheckNow()}

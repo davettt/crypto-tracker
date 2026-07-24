@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 import {
   createChart,
   ColorType,
@@ -7,15 +7,9 @@ import {
   createSeriesMarkers,
   type SeriesMarker,
   type Time,
-} from "lightweight-charts";
-import type {
-  ChartData,
-  Currency,
-  ExchangeRates,
-  AssetId,
-  Transaction,
-} from "../types";
-import { ASSETS, CURRENCY_SYMBOLS } from "../types";
+} from 'lightweight-charts';
+import type { ChartData, Currency, ExchangeRates, AssetId, Transaction } from '../types';
+import { ASSETS, CURRENCY_SYMBOLS } from '../types';
 
 export default function PriceChart({
   data,
@@ -55,32 +49,32 @@ export default function PriceChart({
 
     const chart = createChart(container, {
       layout: {
-        background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: '#ffffff' },
+        textColor: '#9ca3af',
       },
       grid: {
-        vertLines: { color: "#f3f4f6" },
-        horzLines: { color: "#f3f4f6" },
+        vertLines: { color: '#f3f4f6' },
+        horzLines: { color: '#f3f4f6' },
       },
       width: container.clientWidth,
       height: 400,
       timeScale: {
-        borderColor: "#e5e7eb",
+        borderColor: '#e5e7eb',
       },
       rightPriceScale: {
-        borderColor: "#e5e7eb",
+        borderColor: '#e5e7eb',
       },
     });
 
     const priceSeries = chart.addSeries(AreaSeries, {
-      topColor: "rgba(59, 130, 246, 0.15)",
-      bottomColor: "rgba(59, 130, 246, 0.02)",
-      lineColor: "#3b82f6",
+      topColor: 'rgba(59, 130, 246, 0.15)',
+      bottomColor: 'rgba(59, 130, 246, 0.02)',
+      lineColor: '#3b82f6',
       lineWidth: 2,
     });
 
     const ma200Series = chart.addSeries(LineSeries, {
-      color: "#f59e0b",
+      color: '#f59e0b',
       lineWidth: 2,
       lineStyle: 2,
       lastValueVisible: false,
@@ -89,10 +83,7 @@ export default function PriceChart({
 
     const dailyData = data.daily.map((d, i) => ({
       time: d.date,
-      value:
-        currentPrice && i === data.daily.length - 1
-          ? currentPrice * rate
-          : d.price * rate,
+      value: currentPrice && i === data.daily.length - 1 ? currentPrice * rate : d.price * rate,
     }));
     priceSeries.setData(dailyData);
 
@@ -121,9 +112,7 @@ export default function PriceChart({
         })
         .map((tx): SeriesMarker<Time> => {
           const txPrice = (tx.price ?? tx.priceUsd) as number;
-          const txCurrency = (
-            tx.price != null ? tx.currency : "USD"
-          ).toLowerCase();
+          const txCurrency = (tx.price != null ? tx.currency : 'USD').toLowerCase();
 
           let markerPrice: number;
           if (txCurrency === dc) {
@@ -137,12 +126,12 @@ export default function PriceChart({
             }
           }
 
-          const isBuy = tx.type === "buy";
+          const isBuy = tx.type === 'buy';
           return {
             time: tx.date as unknown as Time,
-            position: "atPriceMiddle",
-            shape: "circle",
-            color: isBuy ? "#16a34a" : "#dc2626",
+            position: 'atPriceMiddle',
+            shape: 'circle',
+            color: isBuy ? '#16a34a' : '#dc2626',
             price: markerPrice,
             size: 1,
           };
@@ -165,23 +154,15 @@ export default function PriceChart({
         chart.applyOptions({ width: container.clientWidth });
       }
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [
-    data,
-    homeCurrency,
-    displayCurrency,
-    exchangeRates,
-    activeAsset,
-    currentPrice,
-    transactions,
-  ]);
+  }, [data, homeCurrency, displayCurrency, exchangeRates, activeAsset, currentPrice, transactions]);
 
-  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? '$';
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -191,22 +172,19 @@ export default function PriceChart({
         </h3>
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-0.5 w-4 bg-blue-500" /> Price (
-            {symbol})
+            <span className="inline-block h-0.5 w-4 bg-blue-500" /> Price ({symbol})
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-amber-500" />{" "}
+            <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-amber-500" />{' '}
             200-Day MA
           </span>
           {transactions.length > 0 && (
             <>
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-green-600" />{" "}
-                Buy
+                <span className="inline-block h-2 w-2 rounded-full bg-green-600" /> Buy
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-red-600" />{" "}
-                Sell
+                <span className="inline-block h-2 w-2 rounded-full bg-red-600" /> Sell
               </span>
             </>
           )}

@@ -1,20 +1,17 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import { Resend } from "resend";
-import { ASSETS, ASSET_IDS } from "./assets.js";
-import { getPriceHistory, getCoinCurrent } from "./coingecko.js";
-import { toWeekly, generateSignals } from "./indicators.js";
-import { loadPortfolio } from "./routes/portfolio.js";
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Resend } from 'resend';
+import { ASSETS, ASSET_IDS } from './assets.js';
+import { getPriceHistory, getCoinCurrent } from './coingecko.js';
+import { toWeekly, generateSignals } from './indicators.js';
+import { loadPortfolio } from './routes/portfolio.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETTINGS_FILE = path.join(__dirname, "../local_data/alert_settings.json");
-const STATE_FILE = path.join(__dirname, "../local_data/alert_state.json");
-const PRICE_ALERTS_FILE = path.join(
-  __dirname,
-  "../local_data/price_alerts.json",
-);
-const DATA_DIR = path.join(__dirname, "../local_data");
+const SETTINGS_FILE = path.join(__dirname, '../local_data/alert_settings.json');
+const STATE_FILE = path.join(__dirname, '../local_data/alert_state.json');
+const PRICE_ALERTS_FILE = path.join(__dirname, '../local_data/price_alerts.json');
+const DATA_DIR = path.join(__dirname, '../local_data');
 
 const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 
@@ -22,14 +19,14 @@ let checkTimer = null;
 
 export async function loadAlertSettings() {
   try {
-    const raw = await fs.readFile(SETTINGS_FILE, "utf8");
+    const raw = await fs.readFile(SETTINGS_FILE, 'utf8');
     return JSON.parse(raw);
   } catch {
     return {
       enabled: false,
-      email: "",
-      resendApiKey: "",
-      fromEmail: "alerts@resend.dev",
+      email: '',
+      resendApiKey: '',
+      fromEmail: 'alerts@resend.dev',
       priceChangeThreshold: 10,
       signalChangeEnabled: true,
       targetApproachEnabled: true,
@@ -45,7 +42,7 @@ export async function saveAlertSettings(settings) {
 
 export async function loadPriceAlerts() {
   try {
-    return JSON.parse(await fs.readFile(PRICE_ALERTS_FILE, "utf-8"));
+    return JSON.parse(await fs.readFile(PRICE_ALERTS_FILE, 'utf-8'));
   } catch {
     return {};
   }
@@ -53,12 +50,12 @@ export async function loadPriceAlerts() {
 
 export async function savePriceAlerts(alerts) {
   await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(PRICE_ALERTS_FILE, JSON.stringify(alerts, null, 2) + "\n");
+  await fs.writeFile(PRICE_ALERTS_FILE, JSON.stringify(alerts, null, 2) + '\n');
 }
 
 async function loadAlertState() {
   try {
-    const raw = await fs.readFile(STATE_FILE, "utf8");
+    const raw = await fs.readFile(STATE_FILE, 'utf8');
     return JSON.parse(raw);
   } catch {
     return {};
@@ -72,18 +69,18 @@ async function saveAlertState(state) {
 
 function formatPrice(price, currency) {
   const symbols = {
-    USD: "$",
-    AUD: "A$",
-    GBP: "\u00a3",
-    EUR: "\u20ac",
-    JPY: "\u00a5",
-    NZD: "NZ$",
-    SGD: "S$",
-    CAD: "C$",
+    USD: '$',
+    AUD: 'A$',
+    GBP: '\u00a3',
+    EUR: '\u20ac',
+    JPY: '\u00a5',
+    NZD: 'NZ$',
+    SGD: 'S$',
+    CAD: 'C$',
   };
-  const sym = symbols[currency] ?? "$";
+  const sym = symbols[currency] ?? '$';
   if (price >= 1000)
-    return `${sym}${price.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${sym}${price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (price >= 1) return `${sym}${price.toFixed(2)}`;
   return `${sym}${price.toPrecision(4)}`;
 }
@@ -105,7 +102,7 @@ export async function checkAlerts() {
 
   const state = await loadAlertState();
   const portfolio = await loadPortfolio();
-  const homeCurrency = portfolio.settings?.homeCurrency ?? "USD";
+  const homeCurrency = portfolio.settings?.homeCurrency ?? 'USD';
   const alerts = [];
 
   for (const assetId of ASSET_IDS) {
@@ -133,14 +130,14 @@ export async function checkAlerts() {
         prevState.overall &&
         prevState.overall !== overall.action
       ) {
-        const actionClass = overall.action.includes("BUY")
-          ? "buy"
-          : overall.action.includes("SELL")
-            ? "sell"
-            : "neutral";
+        const actionClass = overall.action.includes('BUY')
+          ? 'buy'
+          : overall.action.includes('SELL')
+            ? 'sell'
+            : 'neutral';
         alerts.push({
           asset: asset.symbol,
-          type: "signal",
+          type: 'signal',
           actionClass,
           title: `${asset.symbol}: Signal changed to ${overall.action}`,
           detail: `${overall.description} (was: ${prevState.overall})`,
@@ -153,16 +150,14 @@ export async function checkAlerts() {
         settings.priceChangeThreshold > 0 &&
         Math.abs(current.priceChange24h) >= settings.priceChangeThreshold
       ) {
-        const alreadySent =
-          prevState.lastPriceAlertChange24h ===
-          current.priceChange24h.toFixed(1);
+        const alreadySent = prevState.lastPriceAlertChange24h === current.priceChange24h.toFixed(1);
         if (!alreadySent) {
-          const direction = current.priceChange24h > 0 ? "up" : "down";
+          const direction = current.priceChange24h > 0 ? 'up' : 'down';
           alerts.push({
             asset: asset.symbol,
-            type: "price",
-            actionClass: direction === "up" ? "sell" : "buy",
-            title: `${asset.symbol}: ${direction === "up" ? "+" : ""}${current.priceChange24h.toFixed(1)}% in 24h`,
+            type: 'price',
+            actionClass: direction === 'up' ? 'sell' : 'buy',
+            title: `${asset.symbol}: ${direction === 'up' ? '+' : ''}${current.priceChange24h.toFixed(1)}% in 24h`,
             detail: `Current price: ${formatPrice(current.price, homeCurrency)}`,
             price: formatPrice(current.price, homeCurrency),
           });
@@ -176,16 +171,14 @@ export async function checkAlerts() {
       // Target sell price approach
       if (settings.targetApproachEnabled) {
         const assetTxs = (portfolio.transactions ?? []).filter(
-          (t) => (t.asset ?? "bitcoin") === assetId && t.type === "buy",
+          (t) => (t.asset ?? 'bitcoin') === assetId && t.type === 'buy',
         );
         if (assetTxs.length > 0) {
           const taxSettings = portfolio.settings?.taxSettings ?? {
             marginalTaxRate: 0.325,
             exchangeFeeRate: 0.006,
           };
-          const avgCost =
-            assetTxs.reduce((sum, t) => sum + (t.price ?? 0), 0) /
-            assetTxs.length;
+          const avgCost = assetTxs.reduce((sum, t) => sum + (t.price ?? 0), 0) / assetTxs.length;
           if (avgCost > 0) {
             const targetMultiples = [1.5, 2, 2.5];
             for (const mult of targetMultiples) {
@@ -195,19 +188,15 @@ export async function checkAlerts() {
               const taxableGain = gain * 0.5; // assume >12 month hold (CGT discount)
               const tax = taxableGain * taxSettings.marginalTaxRate;
               const netTarget = rawTarget - fee - tax;
-              const pctFromTarget =
-                ((current.price - rawTarget) / rawTarget) * 100;
+              const pctFromTarget = ((current.price - rawTarget) / rawTarget) * 100;
 
               const stateKey = `target_${mult}x`;
-              if (
-                pctFromTarget >= -settings.targetApproachPercent &&
-                pctFromTarget <= 5
-              ) {
+              if (pctFromTarget >= -settings.targetApproachPercent && pctFromTarget <= 5) {
                 if (!prevState[stateKey]) {
                   alerts.push({
                     asset: asset.symbol,
-                    type: "target",
-                    actionClass: "sell",
+                    type: 'target',
+                    actionClass: 'sell',
                     title: `${asset.symbol}: Approaching ${mult}x target`,
                     detail: `Price ${formatPrice(current.price, homeCurrency)} is within ${settings.targetApproachPercent}% of ${mult}x target (${formatPrice(rawTarget, homeCurrency)}). Net after fees+tax: ${formatPrice(netTarget, homeCurrency)}`,
                     price: formatPrice(current.price, homeCurrency),
@@ -243,20 +232,17 @@ export async function checkAlerts() {
 
     for (const pa of assetAlerts) {
       if (pa.triggered) continue;
-      const hit =
-        pa.direction === "below"
-          ? lastPrice <= pa.price
-          : lastPrice >= pa.price;
+      const hit = pa.direction === 'below' ? lastPrice <= pa.price : lastPrice >= pa.price;
       if (hit) {
         pa.triggered = true;
         priceAlertsChanged = true;
-        const label = pa.direction === "below" ? "dropped to" : "reached";
+        const label = pa.direction === 'below' ? 'dropped to' : 'reached';
         alerts.push({
           asset: asset.symbol,
-          type: "price-level",
-          actionClass: pa.direction === "below" ? "buy" : "sell",
+          type: 'price-level',
+          actionClass: pa.direction === 'below' ? 'buy' : 'sell',
           title: `${asset.symbol}: Price ${label} ${formatPrice(pa.price, homeCurrency)} target`,
-          detail: `Current price: ${formatPrice(lastPrice, homeCurrency)}${pa.note ? ` — ${pa.note}` : ""}`,
+          detail: `Current price: ${formatPrice(lastPrice, homeCurrency)}${pa.note ? ` — ${pa.note}` : ''}`,
           price: formatPrice(lastPrice, homeCurrency),
         });
       }
@@ -271,36 +257,36 @@ export async function checkAlerts() {
   const subject =
     alerts.length === 1
       ? alerts[0].title
-      : `Crypto Alert: ${alerts.length} triggers across ${[...new Set(alerts.map((a) => a.asset))].join(", ")}`;
+      : `Crypto Alert: ${alerts.length} triggers across ${[...new Set(alerts.map((a) => a.asset))].join(', ')}`;
 
   const html = buildEmailHtml(alerts, homeCurrency);
 
   try {
     await sendAlertEmail(settings, subject, html);
   } catch (err) {
-    console.error("Failed to send alert email:", err.message);
+    console.error('Failed to send alert email:', err.message);
   }
 }
 
 function buildEmailHtml(alerts) {
   const colors = {
     buy: {
-      bg: "#ecfdf5",
-      border: "#6ee7b7",
-      badge: "#059669",
-      label: "BUY SIGNAL",
+      bg: '#ecfdf5',
+      border: '#6ee7b7',
+      badge: '#059669',
+      label: 'BUY SIGNAL',
     },
     sell: {
-      bg: "#fef2f2",
-      border: "#fca5a5",
-      badge: "#dc2626",
-      label: "SELL SIGNAL",
+      bg: '#fef2f2',
+      border: '#fca5a5',
+      badge: '#dc2626',
+      label: 'SELL SIGNAL',
     },
     neutral: {
-      bg: "#f9fafb",
-      border: "#d1d5db",
-      badge: "#6b7280",
-      label: "UPDATE",
+      bg: '#f9fafb',
+      border: '#d1d5db',
+      badge: '#6b7280',
+      label: 'UPDATE',
     },
   };
 
@@ -320,7 +306,7 @@ function buildEmailHtml(alerts) {
         </td>
       </tr>`;
     })
-    .join("");
+    .join('');
 
   return `
     <!DOCTYPE html>
@@ -346,48 +332,43 @@ export async function sendTestEmail(settings) {
   const html = buildEmailHtml(
     [
       {
-        asset: "BTC",
-        type: "signal",
-        actionClass: "buy",
-        title: "BTC: Test Alert - Signal changed to STRONG BUY",
-        detail:
-          "This is a test alert to verify your email configuration is working.",
-        price: "$95,000.00",
+        asset: 'BTC',
+        type: 'signal',
+        actionClass: 'buy',
+        title: 'BTC: Test Alert - Signal changed to STRONG BUY',
+        detail: 'This is a test alert to verify your email configuration is working.',
+        price: '$95,000.00',
       },
       {
-        asset: "ETH",
-        type: "price",
-        actionClass: "sell",
-        title: "ETH: +12.5% in 24h",
-        detail: "Current price: $3,200.00",
-        price: "$3,200.00",
+        asset: 'ETH',
+        type: 'price',
+        actionClass: 'sell',
+        title: 'ETH: +12.5% in 24h',
+        detail: 'Current price: $3,200.00',
+        price: '$3,200.00',
       },
     ],
-    "USD",
+    'USD',
   );
 
   const resend = new Resend(settings.resendApiKey);
   await resend.emails.send({
     from: settings.fromEmail,
     to: settings.email,
-    subject: "Crypto Tracker - Test Alert",
+    subject: 'Crypto Tracker - Test Alert',
     html,
   });
 }
 
 export function startAlertScheduler() {
   if (checkTimer) return;
-  console.log("Alert scheduler started (checking every 4 hours)");
+  console.log('Alert scheduler started (checking every 4 hours)');
   checkTimer = setInterval(() => {
-    checkAlerts().catch((err) =>
-      console.error("Alert check error:", err.message),
-    );
+    checkAlerts().catch((err) => console.error('Alert check error:', err.message));
   }, CHECK_INTERVAL);
   // Run first check 30s after startup to let caches warm
   setTimeout(() => {
-    checkAlerts().catch((err) =>
-      console.error("Initial alert check error:", err.message),
-    );
+    checkAlerts().catch((err) => console.error('Initial alert check error:', err.message));
   }, 30000);
 }
 

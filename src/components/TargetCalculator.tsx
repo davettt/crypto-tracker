@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import type { AssetId, TaxSettings, Transaction } from "../types";
-import { ASSETS } from "../types";
+import { useState, useEffect } from 'react';
+import type { AssetId, TaxSettings, Transaction } from '../types';
+import { ASSETS } from '../types';
 
 interface OpenLot {
   buyTxId: string;
@@ -16,7 +16,7 @@ interface CostBasisData {
 }
 
 function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -78,9 +78,7 @@ export default function TargetCalculator({
 
   for (const lot of openLots) {
     const buyDate = new Date(lot.date);
-    const holdingDays = Math.floor(
-      (now.getTime() - buyDate.getTime()) / (1000 * 60 * 60 * 24),
-    );
+    const holdingDays = Math.floor((now.getTime() - buyDate.getTime()) / (1000 * 60 * 60 * 24));
     if (holdingDays > 365) {
       longTermHoldings += lot.remaining;
     } else {
@@ -141,21 +139,14 @@ export default function TargetCalculator({
                   <th className="pb-2 text-right text-gray-500">Sell Price</th>
                   <th className="pb-2 text-right text-gray-500">Net/unit</th>
                   <th className="pb-2 text-right text-gray-500">Profit/unit</th>
-                  <th className="pb-2 text-right text-gray-500">
-                    Total Profit
-                  </th>
+                  <th className="pb-2 text-right text-gray-500">Total Profit</th>
                   <th className="pb-2 text-right text-gray-500">Gain</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {multiples.map((mult) => {
                   const sellPrice = avgCost * mult;
-                  const net = calcNetPerUnit(
-                    avgCost,
-                    sellPrice,
-                    feeRate,
-                    tier.taxRate,
-                  );
+                  const net = calcNetPerUnit(avgCost, sellPrice, feeRate, tier.taxRate);
                   const profit = net - avgCost;
                   const totalProfit = profit * tier.holdings;
                   const netGainPct = (profit / avgCost) * 100;
@@ -163,11 +154,9 @@ export default function TargetCalculator({
 
                   return (
                     <tr key={mult}>
-                      <td className="py-2 font-medium text-gray-700">
-                        {mult}x
-                      </td>
+                      <td className="py-2 font-medium text-gray-700">{mult}x</td>
                       <td
-                        className={`py-2 text-right ${aboveCurrent ? "text-gray-700" : "text-green-600 font-medium"}`}
+                        className={`py-2 text-right ${aboveCurrent ? 'text-gray-700' : 'text-green-600 font-medium'}`}
                       >
                         {symbol}
                         {fmt(sellPrice)}
@@ -185,7 +174,7 @@ export default function TargetCalculator({
                         {fmt(totalProfit)}
                       </td>
                       <td
-                        className={`py-2 text-right font-medium ${aboveCurrent ? "text-gray-900" : "text-green-600"}`}
+                        className={`py-2 text-right font-medium ${aboveCurrent ? 'text-gray-900' : 'text-green-600'}`}
                       >
                         +{fmt(netGainPct)}%
                       </td>
@@ -199,9 +188,8 @@ export default function TargetCalculator({
 
       <p className="mt-3 text-xs text-gray-400">
         Based on avg cost {symbol}
-        {fmt(avgCost)}/{assetConfig.symbol}. Net factors in{" "}
-        {(feeRate * 100).toFixed(1)}% exchange fee + CGT. Green = already above
-        current price.
+        {fmt(avgCost)}/{assetConfig.symbol}. Net factors in {(feeRate * 100).toFixed(1)}% exchange
+        fee + CGT. Green = already above current price.
       </p>
     </div>
   );

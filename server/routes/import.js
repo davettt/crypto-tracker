@@ -1,32 +1,30 @@
-import { Router } from "express";
-import { loadPortfolio } from "./portfolio.js";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import { DEFAULT_ASSET } from "../assets.js";
+import { Router } from 'express';
+import { loadPortfolio } from './portfolio.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { DEFAULT_ASSET } from '../assets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = path.join(__dirname, "../../local_data/portfolio.json");
+const DATA_FILE = path.join(__dirname, '../../local_data/portfolio.json');
 
 const router = Router();
 
 /** Map CoinSpot market pair to our asset ID */
 const MARKET_TO_ASSET = {
-  "BTC/AUD": "bitcoin",
-  "ETH/AUD": "ethereum",
-  "SOL/AUD": "solana",
-  "RNDR/AUD": "render-token",
-  "RENDER/AUD": "render-token",
-  "TRX/AUD": "tron",
+  'BTC/AUD': 'bitcoin',
+  'ETH/AUD': 'ethereum',
+  'SOL/AUD': 'solana',
+  'RNDR/AUD': 'render-token',
+  'RENDER/AUD': 'render-token',
+  'TRX/AUD': 'tron',
 };
 
 /**
  * Parse CoinSpot date "DD/MM/YYYY HH:MM AM/PM" → "YYYY-MM-DD"
  */
 function parseCoinSpotDate(raw) {
-  const match = raw.match(
-    /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(AM|PM)$/i,
-  );
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s+(AM|PM)$/i);
   if (!match) return null;
   const [, dd, mm, yyyy] = match;
   return `${yyyy}-${mm}-${dd}`;
@@ -36,8 +34,8 @@ function parseCoinSpotDate(raw) {
  * Parse a number that may have a currency suffix like "0.99 AUD"
  */
 function parseNum(val) {
-  if (val == null || val === "") return 0;
-  return parseFloat(String(val).replace(/[^0-9.-]/g, "")) || 0;
+  if (val == null || val === '') return 0;
+  return parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
 }
 
 /**
@@ -46,30 +44,28 @@ function parseNum(val) {
  */
 function parseCoinSpotCsv(csvText, markets = null) {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) return { transactions: [], errors: ["CSV is empty"] };
+  if (lines.length < 2) return { transactions: [], errors: ['CSV is empty'] };
 
   // Parse header
-  const header = lines[0].split(",").map((h) => h.replace(/"/g, "").trim());
+  const header = lines[0].split(',').map((h) => h.replace(/"/g, '').trim());
   const col = (name) => header.indexOf(name);
 
-  const iDate = col("Transaction Date");
-  const iType = col("Type");
-  const iMarket = col("Market");
-  const iAmount = col("Amount");
-  const iRateExFee = col("Rate ex. fee");
-  const iFeeAud = col("Fee AUD (inc GST)");
-  const iTotalAud = col("Total AUD");
+  const iDate = col('Transaction Date');
+  const iType = col('Type');
+  const iMarket = col('Market');
+  const iAmount = col('Amount');
+  const iRateExFee = col('Rate ex. fee');
+  const iFeeAud = col('Fee AUD (inc GST)');
+  const iTotalAud = col('Total AUD');
 
   if (iDate === -1 || iType === -1 || iMarket === -1) {
     return {
       transactions: [],
-      errors: ["Missing required columns: Transaction Date, Type, Market"],
+      errors: ['Missing required columns: Transaction Date, Type, Market'],
     };
   }
 
-  const allowedMarkets = markets
-    ? new Set(markets)
-    : new Set(Object.keys(MARKET_TO_ASSET));
+  const allowedMarkets = markets ? new Set(markets) : new Set(Object.keys(MARKET_TO_ASSET));
 
   const transactions = [];
   const errors = [];
@@ -77,14 +73,14 @@ function parseCoinSpotCsv(csvText, markets = null) {
   for (let i = 1; i < lines.length; i++) {
     // Simple CSV parse (handles quoted fields)
     const fields = [];
-    let current = "";
+    let current = '';
     let inQuotes = false;
     for (const ch of lines[i]) {
       if (ch === '"') {
         inQuotes = !inQuotes;
-      } else if (ch === "," && !inQuotes) {
+      } else if (ch === ',' && !inQuotes) {
         fields.push(current.trim());
-        current = "";
+        current = '';
       } else {
         current += ch;
       }
@@ -98,7 +94,7 @@ function parseCoinSpotCsv(csvText, markets = null) {
     if (!assetId) continue;
 
     const type = fields[iType]?.toLowerCase();
-    if (type !== "buy" && type !== "sell") {
+    if (type !== 'buy' && type !== 'sell') {
       errors.push(`Row ${i + 1}: unknown type "${fields[iType]}"`);
       continue;
     }
@@ -130,10 +126,10 @@ function parseCoinSpotCsv(csvText, markets = null) {
       amountCrypto,
       price,
       fee: feeAud,
-      currency: "AUD",
+      currency: 'AUD',
       date,
-      notes: "",
-      platform: "CoinSpot",
+      notes: '',
+      platform: 'CoinSpot',
     });
   }
 
@@ -158,11 +154,11 @@ function findDuplicates(newTxs, existingTxs) {
 }
 
 // POST /api/import/coinspot/preview — parse CSV and return preview
-router.post("/coinspot/preview", async (req, res) => {
+router.post('/coinspot/preview', async (req, res) => {
   try {
     const { csv, markets } = req.body;
-    if (!csv || typeof csv !== "string") {
-      return res.status(400).json({ error: "csv field is required" });
+    if (!csv || typeof csv !== 'string') {
+      return res.status(400).json({ error: 'csv field is required' });
     }
 
     const { transactions, errors } = parseCoinSpotCsv(csv, markets);
@@ -187,11 +183,11 @@ router.post("/coinspot/preview", async (req, res) => {
 });
 
 // POST /api/import/coinspot/confirm — commit previewed transactions (skip duplicates)
-router.post("/coinspot/confirm", async (req, res) => {
+router.post('/coinspot/confirm', async (req, res) => {
   try {
     const { csv, markets } = req.body;
-    if (!csv || typeof csv !== "string") {
-      return res.status(400).json({ error: "csv field is required" });
+    if (!csv || typeof csv !== 'string') {
+      return res.status(400).json({ error: 'csv field is required' });
     }
 
     const { transactions } = parseCoinSpotCsv(csv, markets);

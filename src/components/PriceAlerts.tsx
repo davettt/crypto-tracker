@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import type { AssetId, Currency } from "../types";
-import { CURRENCY_SYMBOLS } from "../types";
+import { useState, useEffect, useRef } from 'react';
+import type { AssetId, Currency } from '../types';
+import { CURRENCY_SYMBOLS } from '../types';
 
 interface PriceAlert {
   price: number;
-  direction: "below" | "above";
+  direction: 'below' | 'above';
   note: string;
   triggered: boolean;
 }
@@ -20,36 +20,32 @@ export default function PriceAlerts({
 }) {
   const [all, setAll] = useState<AllPriceAlerts>({});
   const [adding, setAdding] = useState(false);
-  const [draftPrice, setDraftPrice] = useState("");
-  const [draftDir, setDraftDir] = useState<"below" | "above">("below");
-  const [draftNote, setDraftNote] = useState("");
+  const [draftPrice, setDraftPrice] = useState('');
+  const [draftDir, setDraftDir] = useState<'below' | 'above'>('below');
+  const [draftNote, setDraftNote] = useState('');
   const priceRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/alerts/price-alerts")
+    fetch('/api/alerts/price-alerts')
       .then((r) => r.json())
       .then(setAll)
       .catch(() => {});
   }, []);
 
   const alerts = all[activeAsset] ?? [];
-  const sym = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
+  const sym = CURRENCY_SYMBOLS[homeCurrency] ?? '$';
 
   const save = async (updated: PriceAlert[]) => {
     const next = { ...all };
     if (updated.length === 0) {
-      setAll(
-        Object.fromEntries(
-          Object.entries(next).filter(([k]) => k !== activeAsset),
-        ),
-      );
+      setAll(Object.fromEntries(Object.entries(next).filter(([k]) => k !== activeAsset)));
     } else {
       next[activeAsset] = updated;
       setAll(next);
     }
     await fetch(`/api/alerts/price-alerts/${activeAsset}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ alerts: updated }),
     });
   };
@@ -66,8 +62,8 @@ export default function PriceAlerts({
         triggered: false,
       },
     ];
-    setDraftPrice("");
-    setDraftNote("");
+    setDraftPrice('');
+    setDraftNote('');
     setAdding(false);
     void save(updated);
   };
@@ -77,15 +73,13 @@ export default function PriceAlerts({
   };
 
   const handleReset = (idx: number) => {
-    const updated = alerts.map((a, i) =>
-      i === idx ? { ...a, triggered: false } : a,
-    );
+    const updated = alerts.map((a, i) => (i === idx ? { ...a, triggered: false } : a));
     void save(updated);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleAdd();
-    if (e.key === "Escape") setAdding(false);
+    if (e.key === 'Enter') handleAdd();
+    if (e.key === 'Escape') setAdding(false);
   };
 
   const startAdding = () => {
@@ -101,13 +95,13 @@ export default function PriceAlerts({
             key={i}
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
               a.triggered
-                ? "bg-amber-50 text-amber-600 line-through"
-                : a.direction === "below"
-                  ? "bg-green-50 text-green-600"
-                  : "bg-red-50 text-red-600"
+                ? 'bg-amber-50 text-amber-600 line-through'
+                : a.direction === 'below'
+                  ? 'bg-green-50 text-green-600'
+                  : 'bg-red-50 text-red-600'
             }`}
           >
-            {a.direction === "below" ? "≤" : "≥"} {sym}
+            {a.direction === 'below' ? '≤' : '≥'} {sym}
             {a.price.toLocaleString()}
             {a.note && (
               <span className="text-gray-400" title={a.note}>
@@ -137,7 +131,7 @@ export default function PriceAlerts({
           <span className="inline-flex items-center gap-1">
             <select
               value={draftDir}
-              onChange={(e) => setDraftDir(e.target.value as "below" | "above")}
+              onChange={(e) => setDraftDir(e.target.value as 'below' | 'above')}
               className="rounded border border-gray-300 bg-white px-1 py-0.5 text-xs outline-none"
             >
               <option value="below">Below</option>
@@ -169,18 +163,12 @@ export default function PriceAlerts({
             >
               Add
             </button>
-            <button
-              onClick={() => setAdding(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={() => setAdding(false)} className="text-gray-400 hover:text-gray-600">
               &times;
             </button>
           </span>
         ) : (
-          <button
-            onClick={startAdding}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={startAdding} className="text-gray-400 hover:text-gray-600">
             + Price alert
           </button>
         )}

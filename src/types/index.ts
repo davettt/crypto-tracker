@@ -1,14 +1,7 @@
 // --- Asset types ---
 
 export type AssetId =
-  | "bitcoin"
-  | "ethereum"
-  | "solana"
-  | "render-token"
-  | "tron"
-  | "bittensor"
-  | "chainlink"
-  | "near";
+  'bitcoin' | 'ethereum' | 'solana' | 'render-token' | 'tron' | 'bittensor' | 'chainlink' | 'near';
 
 export interface AssetConfig {
   id: AssetId;
@@ -21,88 +14,81 @@ export interface AssetConfig {
 
 export const ASSETS: Record<AssetId, AssetConfig> = {
   bitcoin: {
-    id: "bitcoin",
-    symbol: "BTC",
-    name: "Bitcoin",
+    id: 'bitcoin',
+    symbol: 'BTC',
+    name: 'Bitcoin',
     decimals: 8,
     fearGreed: true,
-    description:
-      "Decentralised digital store of value — the original cryptocurrency",
+    description: 'Decentralised digital store of value — the original cryptocurrency',
   },
   ethereum: {
-    id: "ethereum",
-    symbol: "ETH",
-    name: "Ethereum",
+    id: 'ethereum',
+    symbol: 'ETH',
+    name: 'Ethereum',
     decimals: 6,
     fearGreed: false,
-    description:
-      "Programmable blockchain powering smart contracts, DeFi, and NFTs",
+    description: 'Programmable blockchain powering smart contracts, DeFi, and NFTs',
   },
   solana: {
-    id: "solana",
-    symbol: "SOL",
-    name: "Solana",
+    id: 'solana',
+    symbol: 'SOL',
+    name: 'Solana',
     decimals: 4,
     fearGreed: false,
-    description:
-      "High-throughput L1 blockchain optimised for speed and low fees",
+    description: 'High-throughput L1 blockchain optimised for speed and low fees',
   },
-  "render-token": {
-    id: "render-token",
-    symbol: "RENDER",
-    name: "Render",
+  'render-token': {
+    id: 'render-token',
+    symbol: 'RENDER',
+    name: 'Render',
     decimals: 4,
     fearGreed: false,
-    description:
-      "Decentralised GPU rendering network connecting artists with GPU providers",
+    description: 'Decentralised GPU rendering network connecting artists with GPU providers',
   },
   tron: {
-    id: "tron",
-    symbol: "TRX",
-    name: "TRON",
+    id: 'tron',
+    symbol: 'TRX',
+    name: 'TRON',
     decimals: 4,
     fearGreed: false,
-    description:
-      "High-throughput blockchain dominant in USDT stablecoin transfers",
+    description: 'High-throughput blockchain dominant in USDT stablecoin transfers',
   },
   bittensor: {
-    id: "bittensor",
-    symbol: "TAO",
-    name: "Bittensor",
+    id: 'bittensor',
+    symbol: 'TAO',
+    name: 'Bittensor',
     decimals: 4,
     fearGreed: false,
-    description:
-      "Decentralised AI network rewarding machine learning model contributions",
+    description: 'Decentralised AI network rewarding machine learning model contributions',
   },
   chainlink: {
-    id: "chainlink",
-    symbol: "LINK",
-    name: "Chainlink",
+    id: 'chainlink',
+    symbol: 'LINK',
+    name: 'Chainlink',
     decimals: 4,
     fearGreed: false,
-    description:
-      "Decentralised oracle network bridging blockchains with real-world data",
+    description: 'Decentralised oracle network bridging blockchains with real-world data',
   },
   near: {
-    id: "near",
-    symbol: "NEAR",
-    name: "NEAR Protocol",
+    id: 'near',
+    symbol: 'NEAR',
+    name: 'NEAR Protocol',
     decimals: 4,
     fearGreed: false,
     description:
-      "L1 blockchain with dedicated AI division, co-founded by Transformer paper co-author",
+      'L1 blockchain with dedicated AI division, co-founded by Transformer paper co-author',
   },
 };
 
 export const ASSET_LIST: AssetId[] = [
-  "bitcoin",
-  "ethereum",
-  "solana",
-  "render-token",
-  "tron",
-  "bittensor",
-  "chainlink",
-  "near",
+  'bitcoin',
+  'ethereum',
+  'solana',
+  'render-token',
+  'tron',
+  'bittensor',
+  'chainlink',
+  'near',
 ];
 
 // --- Market data types ---
@@ -132,8 +118,8 @@ export interface FearGreed {
 }
 
 export interface Signal {
-  type: "buy" | "sell" | "neutral";
-  strength: "strong" | "moderate" | "none";
+  type: 'buy' | 'sell' | 'neutral';
+  strength: 'strong' | 'moderate' | 'none';
   indicator: string;
   value: number;
   message: string;
@@ -188,36 +174,26 @@ export interface ChartData {
 
 // --- Currency types ---
 
-export type Currency =
-  "USD" | "AUD" | "GBP" | "EUR" | "JPY" | "NZD" | "SGD" | "CAD";
+export type Currency = 'USD' | 'AUD' | 'GBP' | 'EUR' | 'JPY' | 'NZD' | 'SGD' | 'CAD';
 
 export const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  USD: "$",
-  AUD: "A$",
-  GBP: "\u00a3",
-  EUR: "\u20ac",
-  JPY: "\u00a5",
-  NZD: "NZ$",
-  SGD: "S$",
-  CAD: "C$",
+  USD: '$',
+  AUD: 'A$',
+  GBP: '\u00a3',
+  EUR: '\u20ac',
+  JPY: '\u00a5',
+  NZD: 'NZ$',
+  SGD: 'S$',
+  CAD: 'C$',
 };
 
-export const CURRENCIES: Currency[] = [
-  "USD",
-  "AUD",
-  "GBP",
-  "EUR",
-  "JPY",
-  "NZD",
-  "SGD",
-  "CAD",
-];
+export const CURRENCIES: Currency[] = ['USD', 'AUD', 'GBP', 'EUR', 'JPY', 'NZD', 'SGD', 'CAD'];
 
 // --- Transaction / Portfolio types ---
 
 export interface Transaction {
   id: string;
-  type: "buy" | "sell";
+  type: 'buy' | 'sell';
   asset: AssetId;
   amount?: number;
   amountCrypto: number;
@@ -247,7 +223,7 @@ export interface PortfolioSettings {
   initialCapital: number;
   initialCapitalUsd?: number;
   needsCapitalConfirmation?: boolean;
-  mode: "dca" | "lump";
+  mode: 'dca' | 'lump';
   taxSettings?: TaxSettings;
 }
 

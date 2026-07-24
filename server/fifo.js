@@ -17,8 +17,8 @@ export function computeFIFO(transactions) {
     const dateCmp = a.date.localeCompare(b.date);
     if (dateCmp !== 0) return dateCmp;
     // Buys before sells on same day
-    if (a.type === "buy" && b.type === "sell") return -1;
-    if (a.type === "sell" && b.type === "buy") return 1;
+    if (a.type === 'buy' && b.type === 'sell') return -1;
+    if (a.type === 'sell' && b.type === 'buy') return 1;
     return 0;
   });
 
@@ -31,7 +31,7 @@ export function computeFIFO(transactions) {
     const txAmount = tx.amount ?? 0;
     const txFee = tx.fee ?? 0;
 
-    if (tx.type === "buy") {
+    if (tx.type === 'buy') {
       lots.push({
         buyTxId: tx.id,
         date: tx.date,
@@ -41,13 +41,12 @@ export function computeFIFO(transactions) {
         remaining: amountCrypto,
         pricePerUnit: amountCrypto > 0 ? txAmount / amountCrypto : 0,
       });
-    } else if (tx.type === "sell") {
+    } else if (tx.type === 'sell') {
       let remaining = amountCrypto;
       const sellProceeds = txAmount;
       const sellFee = txFee;
       // Proportion proceeds across matched lots
-      const proceedsPerUnit =
-        amountCrypto > 0 ? sellProceeds / amountCrypto : 0;
+      const proceedsPerUnit = amountCrypto > 0 ? sellProceeds / amountCrypto : 0;
       const feePerUnit = amountCrypto > 0 ? sellFee / amountCrypto : 0;
 
       for (const lot of lots) {
@@ -55,8 +54,7 @@ export function computeFIFO(transactions) {
         if (lot.remaining <= 0) continue;
 
         const matched = Math.min(lot.remaining, remaining);
-        const matchedFraction =
-          lot.amountCrypto > 0 ? matched / lot.amountCrypto : 0;
+        const matchedFraction = lot.amountCrypto > 0 ? matched / lot.amountCrypto : 0;
         const costBasis = lot.costBasis * matchedFraction;
         const buyFee = lot.fee * matchedFraction;
         const proceeds = matched * proceedsPerUnit;
@@ -108,13 +106,11 @@ export function computeFIFO(transactions) {
  * @returns {{ disposals, totalGains, totalLosses, netGain, discountAmount, taxableGain, estimatedTax }}
  */
 export function computeFYSummary(disposals, fy, marginalTaxRate) {
-  const [startYear] = fy.split("-").map(Number);
+  const [startYear] = fy.split('-').map(Number);
   const fyStart = `${startYear}-07-01`;
   const fyEnd = `${startYear + 1}-06-30`;
 
-  const fyDisposals = disposals.filter(
-    (d) => d.sellDate >= fyStart && d.sellDate <= fyEnd,
-  );
+  const fyDisposals = disposals.filter((d) => d.sellDate >= fyStart && d.sellDate <= fyEnd);
 
   let totalGains = 0;
   let totalLosses = 0;
@@ -150,9 +146,7 @@ export function computeFYSummary(disposals, fy, marginalTaxRate) {
 
   const discountAmount =
     netGain > 0
-      ? discountableGains *
-        (1 - (totalGains > 0 ? (totalGains - netGain) / totalGains : 0)) *
-        0.5
+      ? discountableGains * (1 - (totalGains > 0 ? (totalGains - netGain) / totalGains : 0)) * 0.5
       : 0;
 
   const estimatedTax = Math.max(0, taxableGain * marginalTaxRate);
@@ -182,7 +176,7 @@ export function detectFYs(transactions) {
   const fys = new Set();
   for (const t of transactions) {
     if (!t.date) continue;
-    const [year, month] = t.date.split("-").map(Number);
+    const [year, month] = t.date.split('-').map(Number);
     // FY runs July-June: July 2025 → FY 2025-2026, June 2026 → FY 2025-2026
     const fyStart = month >= 7 ? year : year - 1;
     fys.add(`${fyStart}-${fyStart + 1}`);

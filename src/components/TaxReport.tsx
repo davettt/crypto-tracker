@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import type { TaxSettings } from "../types";
-import { ASSETS } from "../types";
+import { useState, useEffect } from 'react';
+import type { TaxSettings } from '../types';
+import { ASSETS } from '../types';
 
 interface Disposal {
   sellTxId: string;
@@ -32,7 +32,7 @@ interface FYSummary {
 }
 
 function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -46,19 +46,19 @@ export default function TaxReport({
   taxSettings: TaxSettings | undefined;
 }) {
   const [fys, setFys] = useState<string[]>([]);
-  const [selectedFy, setSelectedFy] = useState("");
+  const [selectedFy, setSelectedFy] = useState('');
   const [summary, setSummary] = useState<FYSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [showDisposals, setShowDisposals] = useState(false);
 
   useEffect(() => {
-    void fetch("/api/tax/fys")
+    void fetch('/api/tax/fys')
       .then((r) => r.json())
       .then((data) => {
         const fyList: string[] = data.fys ?? [];
         setFys(fyList);
         if (fyList.length > 0) {
-          const defaultFy = fyList[fyList.length - 1] ?? "";
+          const defaultFy = fyList[fyList.length - 1] ?? '';
           setSelectedFy(defaultFy);
           // Fetch summary for initial FY
           void fetch(`/api/tax/summary?fy=${defaultFy}`)
@@ -83,12 +83,9 @@ export default function TaxReport({
   if (fys.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
-          Tax Report
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400">Tax Report</h3>
         <p className="mt-3 text-sm text-gray-400">
-          No sell transactions yet — tax report will appear after your first
-          sale.
+          No sell transactions yet — tax report will appear after your first sale.
         </p>
       </div>
     );
@@ -152,9 +149,9 @@ export default function TaxReport({
             <div>
               <p className="text-xs text-gray-500">Net Gain</p>
               <p
-                className={`text-sm font-bold ${summary.netGain >= 0 ? "text-green-600" : "text-red-600"}`}
+                className={`text-sm font-bold ${summary.netGain >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
-                {summary.netGain >= 0 ? "" : "-"}
+                {summary.netGain >= 0 ? '' : '-'}
                 {symbol}
                 {fmt(Math.abs(summary.netGain))}
               </p>
@@ -187,9 +184,7 @@ export default function TaxReport({
               </div>
             </div>
             <div className="mt-2 text-xs text-gray-400">
-              <p>
-                50% CGT discount applied to gains on assets held &gt;12 months.
-              </p>
+              <p>50% CGT discount applied to gains on assets held &gt;12 months.</p>
               <p>Based on Australian tax rules. Not financial advice.</p>
             </div>
           </div>
@@ -201,8 +196,8 @@ export default function TaxReport({
                 onClick={() => setShowDisposals((v) => !v)}
                 className="text-xs font-medium text-gray-500 hover:text-gray-700"
               >
-                {showDisposals ? "Hide" : "Show"} disposals (
-                {summary.disposals.length}) {showDisposals ? "▾" : "▸"}
+                {showDisposals ? 'Hide' : 'Show'} disposals ({summary.disposals.length}){' '}
+                {showDisposals ? '▾' : '▸'}
               </button>
 
               {showDisposals && (
@@ -213,18 +208,10 @@ export default function TaxReport({
                         <th className="px-2 py-1.5 text-gray-500">Sold</th>
                         <th className="px-2 py-1.5 text-gray-500">Bought</th>
                         <th className="px-2 py-1.5 text-gray-500">Asset</th>
-                        <th className="px-2 py-1.5 text-right text-gray-500">
-                          Amount
-                        </th>
-                        <th className="px-2 py-1.5 text-right text-gray-500">
-                          Cost
-                        </th>
-                        <th className="px-2 py-1.5 text-right text-gray-500">
-                          Proceeds
-                        </th>
-                        <th className="px-2 py-1.5 text-right text-gray-500">
-                          Gain
-                        </th>
+                        <th className="px-2 py-1.5 text-right text-gray-500">Amount</th>
+                        <th className="px-2 py-1.5 text-right text-gray-500">Cost</th>
+                        <th className="px-2 py-1.5 text-right text-gray-500">Proceeds</th>
+                        <th className="px-2 py-1.5 text-right text-gray-500">Gain</th>
                         <th className="px-2 py-1.5 text-gray-500">Days</th>
                         <th className="px-2 py-1.5 text-gray-500">CGT</th>
                       </tr>
@@ -234,12 +221,8 @@ export default function TaxReport({
                         const assetCfg = ASSETS[d.asset as keyof typeof ASSETS];
                         return (
                           <tr key={i}>
-                            <td className="px-2 py-1 text-gray-700">
-                              {d.sellDate}
-                            </td>
-                            <td className="px-2 py-1 text-gray-700">
-                              {d.buyDate}
-                            </td>
+                            <td className="px-2 py-1 text-gray-700">{d.sellDate}</td>
+                            <td className="px-2 py-1 text-gray-700">{d.buyDate}</td>
                             <td className="px-2 py-1 text-gray-700">
                               {assetCfg?.symbol ?? d.asset}
                             </td>
@@ -255,15 +238,13 @@ export default function TaxReport({
                               {fmt(d.proceeds, 2)}
                             </td>
                             <td
-                              className={`px-2 py-1 text-right font-medium ${d.gain >= 0 ? "text-green-600" : "text-red-600"}`}
+                              className={`px-2 py-1 text-right font-medium ${d.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}
                             >
-                              {d.gain >= 0 ? "+" : ""}
+                              {d.gain >= 0 ? '+' : ''}
                               {symbol}
                               {fmt(d.gain, 2)}
                             </td>
-                            <td className="px-2 py-1 text-gray-500">
-                              {d.holdingDays}
-                            </td>
+                            <td className="px-2 py-1 text-gray-500">{d.holdingDays}</td>
                             <td className="px-2 py-1">
                               {d.discountEligible ? (
                                 <span className="text-blue-500">50%</span>
@@ -283,8 +264,8 @@ export default function TaxReport({
 
           {summary.disposals.length === 0 && (
             <p className="text-sm text-gray-400">
-              No sells recorded in FY {summary.fy} — capital gains tax only
-              applies when you sell or dispose of an asset.
+              No sells recorded in FY {summary.fy} — capital gains tax only applies when you sell or
+              dispose of an asset.
             </p>
           )}
         </div>

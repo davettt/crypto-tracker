@@ -1,9 +1,9 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(__dirname, "..");
+const ROOT = path.join(__dirname, '..');
 
 /**
  * Check whether source files have been modified since the last build.
@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, "..");
  * in `src/` and `server/`. Result is computed once at startup and cached.
  */
 // Directories to skip — not source files, shouldn't trigger stale detection
-const SKIP_DIRS = new Set(["node_modules", "dist", "local_data", ".git"]);
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'local_data', '.git']);
 
 function newestMtime(dir) {
   let newest = 0;
@@ -24,7 +24,7 @@ function newestMtime(dir) {
         newest = Math.max(newest, newestMtime(full));
       } else {
         // Skip log files and non-source files
-        if (entry.name.endsWith(".log")) continue;
+        if (entry.name.endsWith('.log')) continue;
         newest = Math.max(newest, fs.statSync(full).mtimeMs);
       }
     }
@@ -37,16 +37,16 @@ function newestMtime(dir) {
 let stale = false;
 
 try {
-  const markerPath = path.join(ROOT, ".last-build");
-  const buildTime = parseInt(fs.readFileSync(markerPath, "utf8"), 10);
+  const markerPath = path.join(ROOT, '.last-build');
+  const buildTime = parseInt(fs.readFileSync(markerPath, 'utf8'), 10);
   const srcTime = Math.max(
-    newestMtime(path.join(ROOT, "src")),
-    newestMtime(path.join(ROOT, "server")),
+    newestMtime(path.join(ROOT, 'src')),
+    newestMtime(path.join(ROOT, 'server')),
   );
   stale = srcTime > buildTime;
   if (stale) {
     console.warn(
-      "⚠ Build is stale — source files changed since last build. Run: npm run restart:pm2",
+      '⚠ Build is stale — source files changed since last build. Run: npm run restart:pm2',
     );
   }
 } catch {

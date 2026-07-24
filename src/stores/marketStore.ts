@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import type { MarketOverview, ChartData, Currency, AssetId } from "../types";
+import { create } from 'zustand';
+import type { MarketOverview, ChartData, Currency, AssetId } from '../types';
 
 interface MarketState {
   overviewByAsset: Partial<Record<AssetId, MarketOverview>>;
@@ -22,11 +22,11 @@ interface MarketState {
 export const useMarketStore = create<MarketState>((set, get) => ({
   overviewByAsset: {},
   chartByAsset: {},
-  activeAsset: "bitcoin",
+  activeAsset: 'bitcoin',
   loading: false,
   error: null,
-  homeCurrency: "USD",
-  displayCurrency: "USD",
+  homeCurrency: 'USD',
+  displayCurrency: 'USD',
 
   get overview() {
     return get().overviewByAsset[get().activeAsset] ?? null;
@@ -37,26 +37,23 @@ export const useMarketStore = create<MarketState>((set, get) => ({
 
   setActiveAsset: (activeAsset) => set({ activeAsset }),
   setDisplayCurrency: (displayCurrency) => set({ displayCurrency }),
-  setHomeCurrency: (homeCurrency) =>
-    set({ homeCurrency, displayCurrency: homeCurrency }),
+  setHomeCurrency: (homeCurrency) => set({ homeCurrency, displayCurrency: homeCurrency }),
 
   fetchOverview: async (asset?: AssetId, force?: boolean) => {
     const targetAsset = asset ?? get().activeAsset;
     set({ loading: true, error: null });
     try {
       const params = new URLSearchParams({ asset: targetAsset });
-      if (force) params.set("force", "true");
+      if (force) params.set('force', 'true');
       const res = await fetch(`/api/market/overview?${params}`);
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data: MarketOverview = await res.json();
-      const hc = data.homeCurrency ?? "USD";
+      const hc = data.homeCurrency ?? 'USD';
       set((state) => ({
         overviewByAsset: { ...state.overviewByAsset, [targetAsset]: data },
         homeCurrency: hc,
         displayCurrency:
-          Object.keys(state.overviewByAsset).length === 0
-            ? hc
-            : state.displayCurrency,
+          Object.keys(state.overviewByAsset).length === 0 ? hc : state.displayCurrency,
         loading: false,
       }));
     } catch (err) {
@@ -68,7 +65,7 @@ export const useMarketStore = create<MarketState>((set, get) => ({
     const targetAsset = asset ?? get().activeAsset;
     try {
       const params = new URLSearchParams({ asset: targetAsset });
-      if (force) params.set("force", "true");
+      if (force) params.set('force', 'true');
       const res = await fetch(`/api/market/chart?${params}`);
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data: ChartData = await res.json();

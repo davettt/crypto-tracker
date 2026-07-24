@@ -1,17 +1,17 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useMarketStore } from "./stores/marketStore";
-import type { Transaction, PortfolioSettings, AssetId } from "./types";
-import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from "./types";
-import PriceHeader from "./components/PriceHeader";
-import SignalPanel from "./components/SignalPanel";
-import PriceChart from "./components/PriceChart";
-import RsiChart from "./components/RsiChart";
-import PositionCalculator from "./components/PositionCalculator";
-import PortfolioTracker from "./components/PortfolioTracker";
-import TaxSettings from "./components/TaxSettings";
-import TaxReport from "./components/TaxReport";
-import TargetCalculator from "./components/TargetCalculator";
-import AlertSettings from "./components/AlertSettings";
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useMarketStore } from './stores/marketStore';
+import type { Transaction, PortfolioSettings, AssetId } from './types';
+import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from './types';
+import PriceHeader from './components/PriceHeader';
+import SignalPanel from './components/SignalPanel';
+import PriceChart from './components/PriceChart';
+import RsiChart from './components/RsiChart';
+import PositionCalculator from './components/PositionCalculator';
+import PortfolioTracker from './components/PortfolioTracker';
+import TaxSettings from './components/TaxSettings';
+import TaxReport from './components/TaxReport';
+import TargetCalculator from './components/TargetCalculator';
+import AlertSettings from './components/AlertSettings';
 
 interface PortfolioData {
   settings: PortfolioSettings;
@@ -19,7 +19,7 @@ interface PortfolioData {
 }
 
 async function fetchPortfolio(): Promise<PortfolioData> {
-  const res = await fetch("/api/portfolio");
+  const res = await fetch('/api/portfolio');
   return res.json();
 }
 
@@ -48,9 +48,7 @@ export default function App() {
   const didInit = useRef(false);
 
   // Filter transactions for active asset
-  const transactions = allTransactions.filter(
-    (t) => (t.asset ?? "bitcoin") === activeAsset,
-  );
+  const transactions = allTransactions.filter((t) => (t.asset ?? 'bitcoin') === activeAsset);
 
   const reloadPortfolio = useCallback(() => {
     void fetchPortfolio().then((data) => {
@@ -68,7 +66,7 @@ export default function App() {
       setAllTransactions(data.transactions ?? []);
       setSettings(data.settings);
     });
-    void fetch("/api/build-status")
+    void fetch('/api/build-status')
       .then((r) => r.json())
       .then((d) => setBuildStale(d.stale === true))
       .catch(() => {});
@@ -86,9 +84,9 @@ export default function App() {
   }
 
   async function changeHomeCurrency(newCurrency: string) {
-    await fetch("/api/portfolio/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    await fetch('/api/portfolio/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ homeCurrency: newCurrency }),
     });
     setHomeCurrency(newCurrency as Parameters<typeof setHomeCurrency>[0]);
@@ -96,7 +94,7 @@ export default function App() {
     void fetchOverview();
   }
 
-  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
+  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? '$';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,11 +108,7 @@ export default function App() {
                 <select
                   value={displayCurrency}
                   onChange={(e) =>
-                    setDisplayCurrency(
-                      e.target.value as Parameters<
-                        typeof setDisplayCurrency
-                      >[0],
-                    )
+                    setDisplayCurrency(e.target.value as Parameters<typeof setDisplayCurrency>[0])
                   }
                   className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-gray-700 outline-none focus:border-blue-400"
                 >
@@ -133,7 +127,7 @@ export default function App() {
                 disabled={loading}
                 className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
               >
-                {loading ? "Loading..." : "Refresh"}
+                {loading ? 'Loading...' : 'Refresh'}
               </button>
             </div>
           </div>
@@ -148,9 +142,7 @@ export default function App() {
                   key={id}
                   onClick={() => handleAssetChange(id)}
                   className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-500 hover:bg-gray-100"
+                    isActive ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
                   }`}
                 >
                   {cfg.symbol}
@@ -164,10 +156,10 @@ export default function App() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         {buildStale && (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-            Source files have changed since the last build. Run{" "}
+            Source files have changed since the last build. Run{' '}
             <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
               npm run restart:pm2
-            </code>{" "}
+            </code>{' '}
             to apply updates.
           </div>
         )}
@@ -179,9 +171,7 @@ export default function App() {
         )}
 
         {loading && !overview && (
-          <div className="py-20 text-center text-gray-400">
-            Loading market data...
-          </div>
+          <div className="py-20 text-center text-gray-400">Loading market data...</div>
         )}
 
         {overview && (
@@ -261,10 +251,7 @@ export default function App() {
                 taxSettings={settings?.taxSettings}
                 transactions={transactions}
               />
-              <TaxReport
-                symbol={homeSymbol}
-                taxSettings={settings?.taxSettings}
-              />
+              <TaxReport symbol={homeSymbol} taxSettings={settings?.taxSettings} />
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
@@ -283,11 +270,10 @@ export default function App() {
       <footer className="border-t border-gray-200 bg-white py-4 text-center text-xs text-gray-400">
         <div className="mx-auto max-w-6xl px-4">
           <p>
-            Not financial or tax advice. All signals are algorithmic and may not
-            reflect current market conditions. Tax calculations are estimates
-            based on simplified Australian tax rules — do not rely on them for
-            tax reporting. Always consult a qualified financial adviser and tax
-            professional. Use at your own risk.
+            Not financial or tax advice. All signals are algorithmic and may not reflect current
+            market conditions. Tax calculations are estimates based on simplified Australian tax
+            rules — do not rely on them for tax reporting. Always consult a qualified financial
+            adviser and tax professional. Use at your own risk.
           </p>
         </div>
       </footer>

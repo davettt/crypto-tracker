@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import type {
   Signal,
   Overall,
@@ -7,23 +7,20 @@ import type {
   PortfolioSettings,
   AssetId,
   MarketOverview,
-} from "../types";
-import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from "../types";
+} from '../types';
+import { ASSETS, ASSET_LIST, CURRENCIES, CURRENCY_SYMBOLS } from '../types';
 
-type Mode = "dca" | "lump";
+type Mode = 'dca' | 'lump';
 
-const BUY_ALLOCATIONS: Record<
-  Mode,
-  Record<string, [number, number, number]>
-> = {
+const BUY_ALLOCATIONS: Record<Mode, Record<string, [number, number, number]>> = {
   dca: {
-    "STRONG BUY": [0.05, 0.1, 0.2],
+    'STRONG BUY': [0.05, 0.1, 0.2],
     BUY: [0.03, 0.07, 0.15],
     ACCUMULATE: [0.02, 0.05, 0.1],
     HOLD: [0, 0.02, 0.05],
   },
   lump: {
-    "STRONG BUY": [0.3, 0.5, 0.75],
+    'STRONG BUY': [0.3, 0.5, 0.75],
     BUY: [0.15, 0.3, 0.5],
     ACCUMULATE: [0.1, 0.2, 0.35],
     HOLD: [0, 0.05, 0.1],
@@ -31,20 +28,20 @@ const BUY_ALLOCATIONS: Record<
 };
 
 const SELL_ALLOCATIONS: Record<string, [number, number, number]> = {
-  "CONSIDER SELLING": [0.1, 0.25, 0.4],
+  'CONSIDER SELLING': [0.1, 0.25, 0.4],
   CAUTION: [0.05, 0.15, 0.25],
 };
 
-const RISK_LABELS = ["Conservative", "Moderate", "Aggressive"] as const;
+const RISK_LABELS = ['Conservative', 'Moderate', 'Aggressive'] as const;
 const RISK_COLORS = [
-  "border-blue-200 bg-blue-50",
-  "border-amber-200 bg-amber-50",
-  "border-red-200 bg-red-50",
+  'border-blue-200 bg-blue-50',
+  'border-amber-200 bg-amber-50',
+  'border-red-200 bg-red-50',
 ];
-const RISK_TEXT = ["text-blue-700", "text-amber-700", "text-red-700"];
+const RISK_TEXT = ['text-blue-700', 'text-amber-700', 'text-red-700'];
 
 function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -80,20 +77,20 @@ export default function PositionCalculator({
   onHomeCurrencyChange: (c: string) => void;
 }) {
   const [editingCapital, setEditingCapital] = useState(false);
-  const [capitalInput, setCapitalInput] = useState("");
-  const [holdingsInput, setHoldingsInput] = useState("");
+  const [capitalInput, setCapitalInput] = useState('');
+  const [holdingsInput, setHoldingsInput] = useState('');
   const [showCurrencyReset, setShowCurrencyReset] = useState(false);
-  const [pendingCurrency, setPendingCurrency] = useState("");
-  const [confirmText, setConfirmText] = useState("");
+  const [pendingCurrency, setPendingCurrency] = useState('');
+  const [confirmText, setConfirmText] = useState('');
 
   const assetConfig = ASSETS[activeAsset];
   const assetSymbol = assetConfig.symbol;
   const assetDecimals = assetConfig.decimals;
 
   async function saveSettings(updates: Partial<PortfolioSettings>) {
-    await fetch("/api/portfolio/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    await fetch('/api/portfolio/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
     onSettingsChange();
@@ -103,8 +100,7 @@ export default function PositionCalculator({
 
   const mode = settings.mode;
   const initialCapital = settings.initialCapital;
-  const needsConfirmation =
-    settings.needsCapitalConfirmation && initialCapital > 0;
+  const needsConfirmation = settings.needsCapitalConfirmation && initialCapital > 0;
 
   if (needsConfirmation && !editingCapital) {
     return (
@@ -113,12 +109,10 @@ export default function PositionCalculator({
           Position Calculator
         </h3>
         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <p className="text-sm font-medium text-amber-800">
-            Confirm investment pool
-          </p>
+          <p className="text-sm font-medium text-amber-800">Confirm investment pool</p>
           <p className="mt-1 text-xs text-amber-600">
-            Your investment pool was previously stored in USD. Please confirm
-            the amount in {homeCurrency}.
+            Your investment pool was previously stored in USD. Please confirm the amount in{' '}
+            {homeCurrency}.
           </p>
           <div className="mt-2 flex gap-2">
             <input
@@ -145,22 +139,20 @@ export default function PositionCalculator({
 
   // Compute remaining cash using ALL transactions across all assets
   const totalBought = transactions
-    .filter((t) => t.type === "buy")
+    .filter((t) => t.type === 'buy')
     .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
   const totalSold = transactions
-    .filter((t) => t.type === "sell")
+    .filter((t) => t.type === 'sell')
     .reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
   const remainingCash = initialCapital - totalBought + totalSold;
 
   // Current asset holdings (filtered to active asset)
-  const assetTxs = transactions.filter(
-    (t) => (t.asset ?? "bitcoin") === activeAsset,
-  );
+  const assetTxs = transactions.filter((t) => (t.asset ?? 'bitcoin') === activeAsset);
   const totalBoughtCrypto = assetTxs
-    .filter((t) => t.type === "buy")
+    .filter((t) => t.type === 'buy')
     .reduce((s, t) => s + getCryptoAmount(t), 0);
   const totalSoldCrypto = assetTxs
-    .filter((t) => t.type === "sell")
+    .filter((t) => t.type === 'sell')
     .reduce((s, t) => s + getCryptoAmount(t), 0);
   const cryptoHoldings = totalBoughtCrypto - totalSoldCrypto;
   const cryptoValue = cryptoHoldings * currentPrice;
@@ -171,36 +163,31 @@ export default function PositionCalculator({
     const overview = overviewByAsset[assetId];
     if (!overview) continue;
     const assetPrice = overview.current.price;
-    const assetTxsAll = transactions.filter(
-      (t) => (t.asset ?? "bitcoin") === assetId,
-    );
+    const assetTxsAll = transactions.filter((t) => (t.asset ?? 'bitcoin') === assetId);
     const bought = assetTxsAll
-      .filter((t) => t.type === "buy")
+      .filter((t) => t.type === 'buy')
       .reduce((s, t) => s + getCryptoAmount(t), 0);
     const sold = assetTxsAll
-      .filter((t) => t.type === "sell")
+      .filter((t) => t.type === 'sell')
       .reduce((s, t) => s + getCryptoAmount(t), 0);
     allCryptoValue += (bought - sold) * assetPrice;
   }
 
   const totalValue = remainingCash + allCryptoValue;
   const totalPnl = totalValue - initialCapital;
-  const totalPnlPct =
-    initialCapital > 0 ? (totalPnl / initialCapital) * 100 : 0;
+  const totalPnlPct = initialCapital > 0 ? (totalPnl / initialCapital) * 100 : 0;
 
   const buyAllocs = BUY_ALLOCATIONS[mode][overall.action];
   const sellAllocs = SELL_ALLOCATIONS[overall.action];
 
   const isBuySide =
-    overall.action === "STRONG BUY" ||
-    overall.action === "BUY" ||
-    overall.action === "ACCUMULATE" ||
-    overall.action === "HOLD";
+    overall.action === 'STRONG BUY' ||
+    overall.action === 'BUY' ||
+    overall.action === 'ACCUMULATE' ||
+    overall.action === 'HOLD';
 
-  const strongBuyCount = signals.filter(
-    (s) => s.type === "buy" && s.strength === "strong",
-  ).length;
-  const buyCount = signals.filter((s) => s.type === "buy").length;
+  const strongBuyCount = signals.filter((s) => s.type === 'buy' && s.strength === 'strong').length;
+  const buyCount = signals.filter((s) => s.type === 'buy').length;
 
   const holdingsNum = parseFloat(holdingsInput) || cryptoHoldings;
 
@@ -232,8 +219,8 @@ export default function PositionCalculator({
           {transactions.length > 0 && (
             <button
               onClick={() => {
-                setPendingCurrency("");
-                setConfirmText("");
+                setPendingCurrency('');
+                setConfirmText('');
                 setShowCurrencyReset(true);
               }}
               className="text-xs text-gray-400 hover:text-gray-600"
@@ -253,16 +240,13 @@ export default function PositionCalculator({
           }}
         >
           <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-sm font-bold text-red-700">
-              Change Home Currency
-            </h3>
+            <h3 className="text-sm font-bold text-red-700">Change Home Currency</h3>
             <p className="mt-2 text-xs text-gray-600">
-              Changing your home currency requires deleting all transactions and
-              resetting your investment pool. This cannot be undone.
+              Changing your home currency requires deleting all transactions and resetting your
+              investment pool. This cannot be undone.
             </p>
             <p className="mt-2 text-xs text-gray-600">
-              Export your transactions to CSV first if you need them for tax
-              records.
+              Export your transactions to CSV first if you need them for tax records.
             </p>
 
             <a
@@ -274,9 +258,7 @@ export default function PositionCalculator({
             </a>
 
             <div className="mt-4">
-              <label className="block text-xs text-gray-500">
-                New home currency
-              </label>
+              <label className="block text-xs text-gray-500">New home currency</label>
               <select
                 value={pendingCurrency}
                 onChange={(e) => setPendingCurrency(e.target.value)}
@@ -306,16 +288,16 @@ export default function PositionCalculator({
 
             <div className="mt-4 flex gap-2">
               <button
-                disabled={confirmText !== "DELETE" || !pendingCurrency}
+                disabled={confirmText !== 'DELETE' || !pendingCurrency}
                 onClick={async () => {
-                  await fetch("/api/portfolio/reset", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                  await fetch('/api/portfolio/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ homeCurrency: pendingCurrency }),
                   });
                   setShowCurrencyReset(false);
-                  setConfirmText("");
-                  setPendingCurrency("");
+                  setConfirmText('');
+                  setPendingCurrency('');
                   onHomeCurrencyChange(pendingCurrency);
                 }}
                 className="flex-1 rounded bg-red-600 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-40"
@@ -360,10 +342,10 @@ export default function PositionCalculator({
               <div>
                 <p className="text-xs text-gray-400">
                   Remaining cash
-                  {remainingCash < 0 ? " (over-deployed)" : ""}
+                  {remainingCash < 0 ? ' (over-deployed)' : ''}
                 </p>
                 <p
-                  className={`font-medium ${remainingCash < 0 ? "text-red-600" : "text-gray-700"}`}
+                  className={`font-medium ${remainingCash < 0 ? 'text-red-600' : 'text-gray-700'}`}
                 >
                   {symbol}
                   {fmt(remainingCash)}
@@ -395,18 +377,18 @@ export default function PositionCalculator({
               <div className="mt-2 flex items-center gap-2">
                 <div className="h-1.5 flex-1 rounded-full bg-gray-200">
                   <div
-                    className={`h-1.5 rounded-full ${totalPnl >= 0 ? "bg-green-500" : "bg-red-500"}`}
+                    className={`h-1.5 rounded-full ${totalPnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
                     style={{
                       width: `${Math.min(100, Math.max(0, (totalValue / initialCapital) * 100))}%`,
                     }}
                   />
                 </div>
                 <span
-                  className={`text-xs font-medium ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-xs font-medium ${totalPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}
                 >
-                  {totalPnl >= 0 ? "+" : ""}
+                  {totalPnl >= 0 ? '+' : ''}
                   {symbol}
-                  {fmt(Math.abs(totalPnl))} ({totalPnlPct >= 0 ? "+" : ""}
+                  {fmt(Math.abs(totalPnl))} ({totalPnlPct >= 0 ? '+' : ''}
                   {totalPnlPct.toFixed(1)}%)
                 </span>
               </div>
@@ -458,22 +440,22 @@ export default function PositionCalculator({
         <div className="mt-3">
           <div className="flex rounded-lg border border-gray-200 text-xs">
             <button
-              onClick={() => void saveSettings({ mode: "dca" })}
-              className={`flex-1 px-3 py-1.5 ${mode === "dca" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"} rounded-l-lg transition-colors`}
+              onClick={() => void saveSettings({ mode: 'dca' })}
+              className={`flex-1 px-3 py-1.5 ${mode === 'dca' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'} rounded-l-lg transition-colors`}
             >
               DCA
             </button>
             <button
-              onClick={() => void saveSettings({ mode: "lump" })}
-              className={`flex-1 px-3 py-1.5 ${mode === "lump" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-50"} rounded-r-lg transition-colors`}
+              onClick={() => void saveSettings({ mode: 'lump' })}
+              className={`flex-1 px-3 py-1.5 ${mode === 'lump' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'} rounded-r-lg transition-colors`}
             >
               Lump Sum
             </button>
           </div>
           <p className="mt-1.5 text-xs text-gray-400">
-            {mode === "dca"
-              ? "Small buys from a limited pool — spread across many dips over time."
-              : "Larger deployment from a dedicated investment fund."}
+            {mode === 'dca'
+              ? 'Small buys from a limited pool — spread across many dips over time.'
+              : 'Larger deployment from a dedicated investment fund.'}
           </p>
         </div>
       )}
@@ -482,8 +464,8 @@ export default function PositionCalculator({
       {isBuySide && remainingCash > 0 && buyAllocs && (
         <div className="mt-4 space-y-2">
           <p className="text-xs text-gray-500">
-            Signal: <span className="font-medium">{overall.action}</span> (
-            {strongBuyCount} strong, {buyCount} total buy signals)
+            Signal: <span className="font-medium">{overall.action}</span> ({strongBuyCount} strong,{' '}
+            {buyCount} total buy signals)
           </p>
           <p className="text-xs text-gray-400">
             Based on remaining {symbol}
@@ -494,14 +476,9 @@ export default function PositionCalculator({
             const cryptoAmount = amount / currentPrice;
             const buysRemaining = pct > 0 ? Math.floor(1 / pct) : Infinity;
             return (
-              <div
-                key={i}
-                className={`rounded-lg border p-3 ${RISK_COLORS[i]}`}
-              >
+              <div key={i} className={`rounded-lg border p-3 ${RISK_COLORS[i]}`}>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold ${RISK_TEXT[i]}`}>
-                    {RISK_LABELS[i]}
-                  </span>
+                  <span className={`text-xs font-bold ${RISK_TEXT[i]}`}>{RISK_LABELS[i]}</span>
                   <span className="text-xs text-gray-500">
                     {Math.round(pct * 100)}% of remaining
                   </span>
@@ -520,7 +497,7 @@ export default function PositionCalculator({
                     Signals don't support buying at this level
                   </p>
                 ) : (
-                  mode === "dca" && (
+                  mode === 'dca' && (
                     <p className="mt-1 text-xs text-gray-400">
                       ~{buysRemaining} buys at this size before depleted
                     </p>
@@ -536,9 +513,8 @@ export default function PositionCalculator({
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm font-medium text-amber-800">Pool depleted</p>
           <p className="mt-1 text-xs text-amber-600">
-            Your investment pool is fully deployed. Adjust the pool amount if
-            you have additional capital, or wait for sell signals to free up
-            cash.
+            Your investment pool is fully deployed. Adjust the pool amount if you have additional
+            capital, or wait for sell signals to free up cash.
           </p>
         </div>
       )}
@@ -548,8 +524,7 @@ export default function PositionCalculator({
         <div className="mt-4 space-y-3">
           {cryptoHoldings > 0 ? (
             <p className="text-xs text-gray-500">
-              Holdings: {fmt(cryptoHoldings, assetDecimals)} {assetSymbol} (
-              {symbol}
+              Holdings: {fmt(cryptoHoldings, assetDecimals)} {assetSymbol} ({symbol}
               {fmt(cryptoValue)})
             </p>
           ) : (
@@ -577,14 +552,9 @@ export default function PositionCalculator({
                 const cryptoToSell = holdingsNum * pct;
                 const valueInCurrency = cryptoToSell * currentPrice;
                 return (
-                  <div
-                    key={i}
-                    className={`rounded-lg border p-3 ${RISK_COLORS[i]}`}
-                  >
+                  <div key={i} className={`rounded-lg border p-3 ${RISK_COLORS[i]}`}>
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${RISK_TEXT[i]}`}>
-                        {RISK_LABELS[i]}
-                      </span>
+                      <span className={`text-xs font-bold ${RISK_TEXT[i]}`}>{RISK_LABELS[i]}</span>
                       <span className="text-xs text-gray-500">
                         {Math.round(pct * 100)}% of holdings
                       </span>
@@ -608,9 +578,7 @@ export default function PositionCalculator({
           )}
 
           {!sellAllocs && (
-            <p className="text-sm text-gray-500">
-              No sell signals active. Hold your position.
-            </p>
+            <p className="text-sm text-gray-500">No sell signals active. Hold your position.</p>
           )}
         </div>
       )}
@@ -622,10 +590,9 @@ export default function PositionCalculator({
       )}
 
       <p className="mt-4 text-xs text-gray-400">
-        <span className="font-medium text-gray-500">Timing tip:</span> Crypto
-        volume peaks during US/EU hours (midnight–3am AEST). Prices tend to
-        drift lower during Australian daytime (12–3pm AEST) when global markets
-        are quietest — a small edge for placing buy orders.
+        <span className="font-medium text-gray-500">Timing tip:</span> Crypto volume peaks during
+        US/EU hours (midnight–3am AEST). Prices tend to drift lower during Australian daytime
+        (12–3pm AEST) when global markets are quietest — a small edge for placing buy orders.
       </p>
     </div>
   );

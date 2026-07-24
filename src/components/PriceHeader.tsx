@@ -1,25 +1,25 @@
-import { useState, useEffect, useRef } from "react";
-import type { CoinCurrent, Currency, ExchangeRates, AssetId } from "../types";
-import { ASSETS, CURRENCY_SYMBOLS } from "../types";
-import PriceAlerts from "./PriceAlerts";
+import { useState, useEffect, useRef } from 'react';
+import type { CoinCurrent, Currency, ExchangeRates, AssetId } from '../types';
+import { ASSETS, CURRENCY_SYMBOLS } from '../types';
+import PriceAlerts from './PriceAlerts';
 
 function fmt(n: number) {
   const decimals = Math.abs(n) < 10 ? 2 : Math.abs(n) < 1000 ? 1 : 0;
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
 function pct(n: number) {
-  const sign = n >= 0 ? "+" : "";
+  const sign = n >= 0 ? '+' : '';
   return `${sign}${n.toFixed(1)}%`;
 }
 
 function pctColor(n: number) {
-  if (n > 0) return "text-green-500";
-  if (n < 0) return "text-red-500";
-  return "text-gray-400";
+  if (n > 0) return 'text-green-500';
+  if (n < 0) return 'text-red-500';
+  return 'text-gray-400';
 }
 
 export default function PriceHeader({
@@ -41,35 +41,35 @@ export default function PriceHeader({
   const assetPrices = exchangeRates.coinPrices[activeAsset] ?? {};
   const rate = dc === hc ? 1 : (assetPrices[dc] ?? 1) / (assetPrices[hc] ?? 1);
 
-  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? "$";
+  const symbol = CURRENCY_SYMBOLS[displayCurrency] ?? '$';
   const price = data.price * rate;
   const ath = data.ath * rate;
   const high = data.high24h * rate;
   const low = data.low24h * rate;
   const marketCap = data.marketCap * rate;
 
-  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? "$";
+  const homeSymbol = CURRENCY_SYMBOLS[homeCurrency] ?? '$';
   const showSecondary = displayCurrency !== homeCurrency;
 
   const hcUsdRate =
-    hc !== "usd" && assetPrices["usd"] && assetPrices[hc]
-      ? assetPrices["usd"] / assetPrices[hc]
+    hc !== 'usd' && assetPrices['usd'] && assetPrices[hc]
+      ? assetPrices['usd'] / assetPrices[hc]
       : null;
 
   // --- Thesis (user-editable, stored in local_data) ---
   const [allNotes, setAllNotes] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/notes")
+    fetch('/api/notes')
       .then((r) => r.json())
       .then(setAllNotes)
       .catch(() => {});
   }, []);
 
-  const thesis = allNotes[activeAsset] ?? "";
+  const thesis = allNotes[activeAsset] ?? '';
 
   const startEdit = () => {
     setDraft(thesis);
@@ -81,22 +81,18 @@ export default function PriceHeader({
     setEditing(false);
     const trimmed = draft.trim();
     setAllNotes((prev) =>
-      Object.fromEntries(
-        Object.entries({ ...prev, [activeAsset]: trimmed }).filter(
-          ([, v]) => v,
-        ),
-      ),
+      Object.fromEntries(Object.entries({ ...prev, [activeAsset]: trimmed }).filter(([, v]) => v)),
     );
     await fetch(`/api/notes/${activeAsset}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ thesis: trimmed }),
     });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") saveThesis();
-    if (e.key === "Escape") setEditing(false);
+    if (e.key === 'Enter') saveThesis();
+    if (e.key === 'Escape') setEditing(false);
   };
 
   return (
@@ -118,12 +114,10 @@ export default function PriceHeader({
             {fmt(data.price)}
           </span>
         )}
-        {!showSecondary && displayCurrency !== "USD" && (
+        {!showSecondary && displayCurrency !== 'USD' && (
           <span className="text-lg text-gray-400">${fmt(data.priceUsd)}</span>
         )}
-        <span
-          className={`text-lg font-medium ${pctColor(data.priceChange24h)}`}
-        >
+        <span className={`text-lg font-medium ${pctColor(data.priceChange24h)}`}>
           {pct(data.priceChange24h)} 24h
         </span>
         <span className={`text-sm ${pctColor(data.priceChange7d)}`}>
@@ -173,9 +167,7 @@ export default function PriceHeader({
             onClick={startEdit}
             title="Click to edit thesis"
           >
-            {thesis
-              ? `Thesis: ${thesis}`
-              : "Click to add your investment thesis..."}
+            {thesis ? `Thesis: ${thesis}` : 'Click to add your investment thesis...'}
           </span>
         )}
       </div>

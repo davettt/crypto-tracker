@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { createChart, ColorType, LineSeries } from "lightweight-charts";
-import type { ChartData } from "../types";
+import { useEffect, useRef } from 'react';
+import { createChart, ColorType, LineSeries } from 'lightweight-charts';
+import type { ChartData } from '../types';
 
 export default function RsiChart({ data }: { data: ChartData }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,39 +14,37 @@ export default function RsiChart({ data }: { data: ChartData }) {
 
     const chart = createChart(container, {
       layout: {
-        background: { type: ColorType.Solid, color: "#ffffff" },
-        textColor: "#9ca3af",
+        background: { type: ColorType.Solid, color: '#ffffff' },
+        textColor: '#9ca3af',
       },
       grid: {
-        vertLines: { color: "#f3f4f6" },
-        horzLines: { color: "#f3f4f6" },
+        vertLines: { color: '#f3f4f6' },
+        horzLines: { color: '#f3f4f6' },
       },
       width: container.clientWidth,
       height: 200,
       timeScale: {
-        borderColor: "#e5e7eb",
+        borderColor: '#e5e7eb',
       },
       rightPriceScale: {
-        borderColor: "#e5e7eb",
+        borderColor: '#e5e7eb',
       },
     });
 
     const rsiSeries = chart.addSeries(LineSeries, {
-      color: "#8b5cf6",
+      color: '#8b5cf6',
       lineWidth: 2,
     });
 
-    rsiSeries.setData(
-      rsiData.map((d) => ({ time: d.date, value: d.rsi as number })),
-    );
+    rsiSeries.setData(rsiData.map((d) => ({ time: d.date, value: d.rsi as number })));
 
     const overbought = chart.addSeries(LineSeries, {
-      color: "#ef444466",
+      color: '#ef444466',
       lineWidth: 1,
       lineStyle: 2,
     });
     const oversold = chart.addSeries(LineSeries, {
-      color: "#22c55e66",
+      color: '#22c55e66',
       lineWidth: 1,
       lineStyle: 2,
     });
@@ -61,10 +59,10 @@ export default function RsiChart({ data }: { data: ChartData }) {
         chart.applyOptions({ width: container.clientWidth });
       }
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
       chart.remove();
     };
   }, [data]);

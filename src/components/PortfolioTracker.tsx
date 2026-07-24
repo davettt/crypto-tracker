@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import type { Transaction, Currency, Overall, Signal, AssetId } from "../types";
-import { ASSETS } from "../types";
-import CsvImport from "./CsvImport";
+import { useState, useEffect } from 'react';
+import type { Transaction, Currency, Overall, Signal, AssetId } from '../types';
+import { ASSETS } from '../types';
+import CsvImport from './CsvImport';
 
 function fmt(n: number, decimals = 0) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -14,7 +14,7 @@ function fmt(n: number, decimals = 0) {
 function fmtPrice(n: number) {
   const abs = Math.abs(n);
   const decimals = abs < 1 ? 4 : abs < 100 ? 3 : abs < 10000 ? 2 : 0;
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -26,29 +26,27 @@ function getCryptoAmount(t: Transaction): number {
 }
 
 function buildDefaultNote(overall: Overall, signals: Signal[]) {
-  const buySigs = signals.filter((s) => s.type === "buy");
-  const sellSigs = signals.filter((s) => s.type === "sell");
-  const strongBuys = buySigs.filter((s) => s.strength === "strong");
-  const strongSells = sellSigs.filter((s) => s.strength === "strong");
+  const buySigs = signals.filter((s) => s.type === 'buy');
+  const sellSigs = signals.filter((s) => s.type === 'sell');
+  const strongBuys = buySigs.filter((s) => s.strength === 'strong');
+  const strongSells = sellSigs.filter((s) => s.strength === 'strong');
 
   const parts: string[] = [`Signal: ${overall.action}`];
 
   if (strongBuys.length > 0) {
-    parts.push(`Strong: ${strongBuys.map((s) => s.indicator).join(", ")}`);
+    parts.push(`Strong: ${strongBuys.map((s) => s.indicator).join(', ')}`);
   }
   if (buySigs.length > strongBuys.length) {
-    const moderate = buySigs.filter((s) => s.strength === "moderate");
+    const moderate = buySigs.filter((s) => s.strength === 'moderate');
     if (moderate.length > 0) {
-      parts.push(`Moderate: ${moderate.map((s) => s.indicator).join(", ")}`);
+      parts.push(`Moderate: ${moderate.map((s) => s.indicator).join(', ')}`);
     }
   }
   if (strongSells.length > 0) {
-    parts.push(
-      `Sell signals: ${strongSells.map((s) => s.indicator).join(", ")}`,
-    );
+    parts.push(`Sell signals: ${strongSells.map((s) => s.indicator).join(', ')}`);
   }
 
-  return parts.join(". ");
+  return parts.join('. ');
 }
 
 function AddTransactionForm({
@@ -72,41 +70,35 @@ function AddTransactionForm({
   signals: Signal[];
   onAdd: () => void;
 }) {
-  const [type, setType] = useState<"buy" | "sell">("buy");
-  const [amount, setAmount] = useState("");
-  const [fee, setFee] = useState("");
-  const [price, setPrice] = useState("");
-  const [cryptoOverride, setCryptoOverride] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [notes, setNotes] = useState("");
-  const [platform, setPlatform] = useState("");
+  const [type, setType] = useState<'buy' | 'sell'>('buy');
+  const [amount, setAmount] = useState('');
+  const [fee, setFee] = useState('');
+  const [price, setPrice] = useState('');
+  const [cryptoOverride, setCryptoOverride] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+  const [platform, setPlatform] = useState('');
   const [open, setOpen] = useState(false);
 
   const amountNum = parseFloat(amount) || 0;
   const feeNum = parseFloat(fee) || 0;
   const priceNum = parseFloat(price) || currentPrice;
   const overrideNum = parseFloat(cryptoOverride) || 0;
-  const effectiveAmount = type === "buy" ? amountNum - feeNum : amountNum;
+  const effectiveAmount = type === 'buy' ? amountNum - feeNum : amountNum;
   // If override provided, use it and back-derive the effective price so
   // FIFO/tax cost basis stays consistent (e.g. Revolut spread).
   const cryptoAmount =
-    overrideNum > 0
-      ? overrideNum
-      : priceNum > 0
-        ? effectiveAmount / priceNum
-        : 0;
+    overrideNum > 0 ? overrideNum : priceNum > 0 ? effectiveAmount / priceNum : 0;
   const effectivePrice =
-    overrideNum > 0 && effectiveAmount > 0
-      ? effectiveAmount / overrideNum
-      : priceNum;
+    overrideNum > 0 && effectiveAmount > 0 ? effectiveAmount / overrideNum : priceNum;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (amountNum <= 0) return;
 
-    await fetch("/api/portfolio/transaction", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    await fetch('/api/portfolio/transaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type,
         asset: activeAsset,
@@ -121,12 +113,12 @@ function AddTransactionForm({
       }),
     });
 
-    setAmount("");
-    setFee("");
-    setPrice("");
-    setCryptoOverride("");
-    setNotes("");
-    setPlatform("");
+    setAmount('');
+    setFee('');
+    setPrice('');
+    setCryptoOverride('');
+    setNotes('');
+    setPlatform('');
     setOpen(false);
     onAdd();
   }
@@ -153,23 +145,21 @@ function AddTransactionForm({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => setType("buy")}
-          className={`flex-1 rounded-lg py-1.5 text-sm font-medium ${type === "buy" ? "bg-green-600 text-white" : "bg-white text-gray-500"}`}
+          onClick={() => setType('buy')}
+          className={`flex-1 rounded-lg py-1.5 text-sm font-medium ${type === 'buy' ? 'bg-green-600 text-white' : 'bg-white text-gray-500'}`}
         >
           Buy
         </button>
         <button
           type="button"
-          onClick={() => setType("sell")}
-          className={`flex-1 rounded-lg py-1.5 text-sm font-medium ${type === "sell" ? "bg-red-600 text-white" : "bg-white text-gray-500"}`}
+          onClick={() => setType('sell')}
+          className={`flex-1 rounded-lg py-1.5 text-sm font-medium ${type === 'sell' ? 'bg-red-600 text-white' : 'bg-white text-gray-500'}`}
         >
           Sell
         </button>
       </div>
       <div>
-        <label className="block text-xs text-gray-500">
-          Amount spent/received ({symbol})
-        </label>
+        <label className="block text-xs text-gray-500">Amount spent/received ({symbol})</label>
         <input
           type="number"
           value={amount}
@@ -205,8 +195,7 @@ function AddTransactionForm({
       </div>
       <div>
         <label className="block text-xs text-gray-500">
-          Actual {assetSymbol} {type === "buy" ? "received" : "sold"} (optional
-          override)
+          Actual {assetSymbol} {type === 'buy' ? 'received' : 'sold'} (optional override)
         </label>
         <input
           type="number"
@@ -217,14 +206,14 @@ function AddTransactionForm({
           className="mt-1 w-full rounded border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400"
         />
         <p className="mt-1 text-xs text-gray-400">
-          Use this when the exchange statement shows an exact {assetSymbol}{" "}
-          amount that differs from the price×amount calculation (e.g. Revolut
-          spread). Effective price will be back-calculated.
+          Use this when the exchange statement shows an exact {assetSymbol} amount that differs from
+          the price×amount calculation (e.g. Revolut spread). Effective price will be
+          back-calculated.
         </p>
       </div>
       {amountNum > 0 && (
         <div className="rounded bg-white p-2 text-xs text-gray-500">
-          {type === "buy" ? (
+          {type === 'buy' ? (
             <>
               <p>
                 {symbol}
@@ -263,9 +252,7 @@ function AddTransactionForm({
         />
       </div>
       <div>
-        <label className="block text-xs text-gray-500">
-          Platform (optional)
-        </label>
+        <label className="block text-xs text-gray-500">Platform (optional)</label>
         <input
           type="text"
           value={platform}
@@ -328,11 +315,9 @@ function TransactionRow({
   const [editAmount, setEditAmount] = useState(String(txAmount));
   const [editFee, setEditFee] = useState(String(txFee));
   const [editPrice, setEditPrice] = useState(String(txPrice));
-  const [editCryptoOverride, setEditCryptoOverride] = useState(
-    String(cryptoAmt),
-  );
+  const [editCryptoOverride, setEditCryptoOverride] = useState(String(cryptoAmt));
   const [editDate, setEditDate] = useState(t.date);
-  const [editPlatform, setEditPlatform] = useState(t.platform ?? "");
+  const [editPlatform, setEditPlatform] = useState(t.platform ?? '');
   const [editNotes, setEditNotes] = useState(t.notes);
 
   function handleSave() {
@@ -340,11 +325,9 @@ function TransactionRow({
     const fee = parseFloat(editFee) || 0;
     const price = parseFloat(editPrice) || 0;
     const override = parseFloat(editCryptoOverride) || 0;
-    const effectiveAmount = editType === "buy" ? amount - fee : amount;
-    const amountCrypto =
-      override > 0 ? override : price > 0 ? effectiveAmount / price : 0;
-    const effectivePrice =
-      override > 0 && effectiveAmount > 0 ? effectiveAmount / override : price;
+    const effectiveAmount = editType === 'buy' ? amount - fee : amount;
+    const amountCrypto = override > 0 ? override : price > 0 ? effectiveAmount / price : 0;
+    const effectivePrice = override > 0 && effectiveAmount > 0 ? effectiveAmount / override : price;
     if (amount <= 0 || amountCrypto <= 0) return;
 
     onEdit(t.id, {
@@ -366,24 +349,22 @@ function TransactionRow({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setEditType("buy")}
-            className={`flex-1 rounded py-1 text-xs font-medium ${editType === "buy" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"}`}
+            onClick={() => setEditType('buy')}
+            className={`flex-1 rounded py-1 text-xs font-medium ${editType === 'buy' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}
           >
             Buy
           </button>
           <button
             type="button"
-            onClick={() => setEditType("sell")}
-            className={`flex-1 rounded py-1 text-xs font-medium ${editType === "sell" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-500"}`}
+            onClick={() => setEditType('sell')}
+            className={`flex-1 rounded py-1 text-xs font-medium ${editType === 'sell' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-500'}`}
           >
             Sell
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="block text-xs text-gray-400">
-              Amount ({symbol})
-            </label>
+            <label className="block text-xs text-gray-400">Amount ({symbol})</label>
             <input
               type="number"
               value={editAmount}
@@ -392,9 +373,7 @@ function TransactionRow({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400">
-              Fee ({symbol})
-            </label>
+            <label className="block text-xs text-gray-400">Fee ({symbol})</label>
             <input
               type="number"
               value={editFee}
@@ -483,7 +462,7 @@ function TransactionRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span
-            className={`text-xs font-bold ${t.type === "buy" ? "text-green-600" : "text-red-600"}`}
+            className={`text-xs font-bold ${t.type === 'buy' ? 'text-green-600' : 'text-red-600'}`}
           >
             {t.type.toUpperCase()}
           </span>
@@ -620,15 +599,10 @@ export default function PortfolioTracker({
       .then((r) => r.json())
       .then((data) => {
         const lots = data.openLots ?? [];
-        const remaining = lots.reduce(
-          (s: number, l: { remaining: number }) => s + l.remaining,
-          0,
-        );
+        const remaining = lots.reduce((s: number, l: { remaining: number }) => s + l.remaining, 0);
         const cost = lots.reduce(
-          (
-            s: number,
-            l: { costBasis: number; remaining: number; amountCrypto: number },
-          ) => s + l.costBasis * (l.remaining / l.amountCrypto),
+          (s: number, l: { costBasis: number; remaining: number; amountCrypto: number }) =>
+            s + l.costBasis * (l.remaining / l.amountCrypto),
           0,
         );
         setFifoAvgCost(remaining > 0 ? cost / remaining : null);
@@ -638,37 +612,28 @@ export default function PortfolioTracker({
   const assetDecimals = assetConfig.decimals;
 
   async function deleteTransaction(id: string) {
-    await fetch(`/api/portfolio/transaction/${id}`, { method: "DELETE" });
+    await fetch(`/api/portfolio/transaction/${id}`, { method: 'DELETE' });
     onTransactionsChange();
   }
 
   async function editTransaction(id: string, updates: Record<string, unknown>) {
     await fetch(`/api/portfolio/transaction/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
     onTransactionsChange();
   }
 
   // Calculate portfolio stats
-  const buys = transactions.filter((t) => t.type === "buy");
-  const sells = transactions.filter((t) => t.type === "sell");
+  const buys = transactions.filter((t) => t.type === 'buy');
+  const sells = transactions.filter((t) => t.type === 'sell');
   const totalBoughtCrypto = buys.reduce((s, t) => s + getCryptoAmount(t), 0);
   const totalSoldCrypto = sells.reduce((s, t) => s + getCryptoAmount(t), 0);
   const holdingsCrypto = totalBoughtCrypto - totalSoldCrypto;
-  const totalInvested = buys.reduce(
-    (s, t) => s + (t.amount ?? t.amountLocal ?? 0),
-    0,
-  );
-  const totalReceived = sells.reduce(
-    (s, t) => s + (t.amount ?? t.amountLocal ?? 0),
-    0,
-  );
-  const totalFees = transactions.reduce(
-    (s, t) => s + (t.fee ?? t.feeLocal ?? t.feeUsd ?? 0),
-    0,
-  );
+  const totalInvested = buys.reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
+  const totalReceived = sells.reduce((s, t) => s + (t.amount ?? t.amountLocal ?? 0), 0);
+  const totalFees = transactions.reduce((s, t) => s + (t.fee ?? t.feeLocal ?? t.feeUsd ?? 0), 0);
 
   const currentValue = holdingsCrypto * currentPrice;
   const netCost = totalInvested - totalReceived;
@@ -702,17 +667,13 @@ export default function PortfolioTracker({
               </div>
               <div>
                 <p className="text-xs text-gray-500">Overall P&L</p>
-                <p
-                  className={`text-lg font-bold ${pnl >= 0 ? "text-green-600" : "text-red-600"}`}
-                >
-                  {pnl >= 0 ? "+" : ""}
+                <p className={`text-lg font-bold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {pnl >= 0 ? '+' : ''}
                   {symbol}
                   {fmt(Math.abs(pnl))}
                 </p>
-                <p
-                  className={`text-sm ${pnlPct >= 0 ? "text-green-500" : "text-red-500"}`}
-                >
-                  {pnlPct >= 0 ? "+" : ""}
+                <p className={`text-sm ${pnlPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {pnlPct >= 0 ? '+' : ''}
                   {pnlPct.toFixed(1)}%
                 </p>
               </div>
@@ -823,10 +784,7 @@ export default function PortfolioTracker({
       )}
 
       {showImport && (
-        <CsvImport
-          onImported={onTransactionsChange}
-          onClose={() => setShowImport(false)}
-        />
+        <CsvImport onImported={onTransactionsChange} onClose={() => setShowImport(false)} />
       )}
     </div>
   );

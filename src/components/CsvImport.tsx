@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef } from 'react';
 
 interface PreviewTx {
   type: string;
@@ -26,7 +26,7 @@ interface ConfirmResult {
 }
 
 function fmt(n: number, decimals = 2) {
-  return n.toLocaleString("en-US", {
+  return n.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -40,10 +40,10 @@ export default function CsvImport({
   onClose: () => void;
 }) {
   const [preview, setPreview] = useState<PreviewResult | null>(null);
-  const [csvText, setCsvText] = useState("");
+  const [csvText, setCsvText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ConfirmResult | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -52,25 +52,25 @@ export default function CsvImport({
 
     const text = await file.text();
     setCsvText(text);
-    setError("");
+    setError('');
     setPreview(null);
     setResult(null);
 
     setLoading(true);
     try {
-      const res = await fetch("/api/import/coinspot/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/import/coinspot/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ csv: text }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to parse CSV");
+        setError(data.error ?? 'Failed to parse CSV');
         return;
       }
       setPreview(data);
     } catch {
-      setError("Failed to connect to server");
+      setError('Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -79,22 +79,22 @@ export default function CsvImport({
   async function handleConfirm() {
     if (!csvText) return;
     setLoading(true);
-    setError("");
+    setError('');
     try {
-      const res = await fetch("/api/import/coinspot/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/import/coinspot/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ csv: csvText }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Import failed");
+        setError(data.error ?? 'Import failed');
         return;
       }
       setResult(data);
       onImported();
     } catch {
-      setError("Failed to connect to server");
+      setError('Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -129,12 +129,12 @@ export default function CsvImport({
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               <p className="text-sm font-medium text-green-800">
                 Successfully imported {result.imported} transaction
-                {result.imported !== 1 ? "s" : ""}
+                {result.imported !== 1 ? 's' : ''}
               </p>
               {result.skippedDuplicates > 0 && (
                 <p className="mt-1 text-xs text-green-600">
                   Skipped {result.skippedDuplicates} duplicate
-                  {result.skippedDuplicates !== 1 ? "s" : ""}
+                  {result.skippedDuplicates !== 1 ? 's' : ''}
                 </p>
               )}
             </div>
@@ -145,8 +145,8 @@ export default function CsvImport({
             <>
               <div>
                 <p className="mb-2 text-sm text-gray-600">
-                  Export your order history from CoinSpot and upload it here.
-                  Only BTC/AUD, SOL/AUD, and RNDR/AUD rows will be imported.
+                  Export your order history from CoinSpot and upload it here. Only BTC/AUD, SOL/AUD,
+                  and RNDR/AUD rows will be imported.
                 </p>
                 <input
                   ref={fileRef}
@@ -157,9 +157,7 @@ export default function CsvImport({
                 />
               </div>
 
-              {loading && (
-                <p className="text-sm text-gray-400">Processing...</p>
-              )}
+              {loading && <p className="text-sm text-gray-400">Processing...</p>}
 
               {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -181,16 +179,14 @@ export default function CsvImport({
                     {preview.summary.duplicates > 0 && (
                       <span className="rounded bg-yellow-50 px-3 py-1 text-yellow-700">
                         {preview.summary.duplicates} duplicate
-                        {preview.summary.duplicates !== 1 ? "s" : ""}
+                        {preview.summary.duplicates !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
 
                   {preview.errors.length > 0 && (
                     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-                      <p className="text-xs font-medium text-yellow-800">
-                        Parse warnings:
-                      </p>
+                      <p className="text-xs font-medium text-yellow-800">Parse warnings:</p>
                       {preview.errors.map((e, i) => (
                         <p key={i} className="text-xs text-yellow-700">
                           {e}
@@ -212,36 +208,24 @@ export default function CsvImport({
                               <th className="px-3 py-2 text-gray-500">Date</th>
                               <th className="px-3 py-2 text-gray-500">Type</th>
                               <th className="px-3 py-2 text-gray-500">Asset</th>
-                              <th className="px-3 py-2 text-right text-gray-500">
-                                Crypto
-                              </th>
-                              <th className="px-3 py-2 text-right text-gray-500">
-                                Price
-                              </th>
-                              <th className="px-3 py-2 text-right text-gray-500">
-                                Total AUD
-                              </th>
-                              <th className="px-3 py-2 text-right text-gray-500">
-                                Fee
-                              </th>
+                              <th className="px-3 py-2 text-right text-gray-500">Crypto</th>
+                              <th className="px-3 py-2 text-right text-gray-500">Price</th>
+                              <th className="px-3 py-2 text-right text-gray-500">Total AUD</th>
+                              <th className="px-3 py-2 text-right text-gray-500">Fee</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
                             {newTxs.map((t, i) => (
                               <tr key={i}>
-                                <td className="px-3 py-1.5 text-gray-700">
-                                  {t.date}
-                                </td>
+                                <td className="px-3 py-1.5 text-gray-700">{t.date}</td>
                                 <td className="px-3 py-1.5">
                                   <span
-                                    className={`font-medium ${t.type === "buy" ? "text-green-600" : "text-red-600"}`}
+                                    className={`font-medium ${t.type === 'buy' ? 'text-green-600' : 'text-red-600'}`}
                                   >
                                     {t.type.toUpperCase()}
                                   </span>
                                 </td>
-                                <td className="px-3 py-1.5 text-gray-700">
-                                  {t.asset}
-                                </td>
+                                <td className="px-3 py-1.5 text-gray-700">{t.asset}</td>
                                 <td className="px-3 py-1.5 text-right text-gray-700">
                                   {t.amountCrypto.toPrecision(6)}
                                 </td>
@@ -274,16 +258,12 @@ export default function CsvImport({
                             {dupeTxs.map((t, i) => (
                               <tr key={i} className="text-yellow-700">
                                 <td className="px-3 py-1">{t.date}</td>
-                                <td className="px-3 py-1">
-                                  {t.type.toUpperCase()}
-                                </td>
+                                <td className="px-3 py-1">{t.type.toUpperCase()}</td>
                                 <td className="px-3 py-1">{t.asset}</td>
                                 <td className="px-3 py-1 text-right">
                                   {t.amountCrypto.toPrecision(6)}
                                 </td>
-                                <td className="px-3 py-1 text-right">
-                                  ${fmt(t.amount)}
-                                </td>
+                                <td className="px-3 py-1 text-right">${fmt(t.amount)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -300,7 +280,7 @@ export default function CsvImport({
                       className="w-full rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-50"
                     >
                       Import {newTxs.length} Transaction
-                      {newTxs.length !== 1 ? "s" : ""}
+                      {newTxs.length !== 1 ? 's' : ''}
                     </button>
                   )}
 
