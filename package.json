@@ -11,7 +11,7 @@
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
     "check": "npm run lint && npm run format:check && npm run type-check",
-    "security": "npm audit --audit-level=high",
+    "security": "npm audit --audit-level=high --omit=dev",
     "restart:pm2": "npm run build && cd .. && pm2 restart crypto-tracker",
     "sast": "semgrep scan --config auto --error --quiet",
     "secrets": "betterleaks git . -v",

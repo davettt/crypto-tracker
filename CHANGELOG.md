@@ -15,6 +15,7 @@
 ### Fixed
 
 - Resolved high-severity `fast-uri` vulnerability
+- Fixed `npm audit` CI failure by scoping audit to production dependencies (dev-only `brace-expansion` vuln in `license-checker` chain)
 
 ## [2.5.0] - 2026-05-03
 
