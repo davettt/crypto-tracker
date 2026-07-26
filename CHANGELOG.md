@@ -10,6 +10,7 @@
 
 - Reformatted all source files to match Prettier house style
 - Synced CI workflow with shared build-policy template
+- CI workflow re-synced to shared build-policy template — reverts semgrep exclusion creep.
 - Updated dependencies: @vitejs/plugin-react, prettier, prettier-plugin-tailwindcss, react, react-dom, resend, typescript-eslint
 
 ### Fixed
