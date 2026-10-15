@@ -1,38 +1,54 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { DATA_DIR } from './config.js';
 import { Resend } from 'resend';
 import { ASSETS, ASSET_IDS } from './assets.js';
 import { getPriceHistory, getCoinCurrent } from './coingecko.js';
 import { toWeekly, generateSignals } from './indicators.js';
 import { loadPortfolio } from './routes/portfolio.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SETTINGS_FILE = path.join(__dirname, '../local_data/alert_settings.json');
-const STATE_FILE = path.join(__dirname, '../local_data/alert_state.json');
-const PRICE_ALERTS_FILE = path.join(__dirname, '../local_data/price_alerts.json');
-const DATA_DIR = path.join(__dirname, '../local_data');
+import { computeFIFO } from './fifo.js';
+import {
+  evaluateSignal,
+  evaluatePriceMove,
+  evaluateTargets,
+  priceMovePercent,
+  fifoAvgCost,
+} from './alertRules.js';
+const SETTINGS_FILE = path.join(DATA_DIR, 'alert_settings.json');
+const STATE_FILE = path.join(DATA_DIR, 'alert_state.json');
+const PRICE_ALERTS_FILE = path.join(DATA_DIR, 'price_alerts.json');
 
 const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 
 let checkTimer = null;
 
+const DEFAULT_SETTINGS = {
+  enabled: false,
+  email: '',
+  resendApiKey: '',
+  fromEmail: 'alerts@resend.dev',
+  signalChangeEnabled: true,
+  priceMoveThreshold: 40,
+  targetCrossEnabled: true,
+};
+
 export async function loadAlertSettings() {
+  let saved = {};
   try {
-    const raw = await fs.readFile(SETTINGS_FILE, 'utf8');
-    return JSON.parse(raw);
+    saved = JSON.parse(await fs.readFile(SETTINGS_FILE, 'utf8'));
   } catch {
-    return {
-      enabled: false,
-      email: '',
-      resendApiKey: '',
-      fromEmail: 'alerts@resend.dev',
-      priceChangeThreshold: 10,
-      signalChangeEnabled: true,
-      targetApproachEnabled: true,
-      targetApproachPercent: 5,
-    };
+    // No settings yet
   }
+  // Migrate pre-2.6 settings: the 24h threshold doesn't carry over to the 30-day window,
+  // so priceMoveThreshold starts at its default.
+  const { priceChangeThreshold, targetApproachEnabled, targetApproachPercent, ...rest } = saved;
+  void priceChangeThreshold;
+  void targetApproachPercent;
+  const settings = { ...DEFAULT_SETTINGS, ...rest };
+  if (rest.targetCrossEnabled == null && targetApproachEnabled != null) {
+    settings.targetCrossEnabled = targetApproachEnabled;
+  }
+  return settings;
 }
 
 export async function saveAlertSettings(settings) {
@@ -104,6 +120,7 @@ export async function checkAlerts() {
   const portfolio = await loadPortfolio();
   const homeCurrency = portfolio.settings?.homeCurrency ?? 'USD';
   const alerts = [];
+  const now = Date.now();
 
   for (const assetId of ASSET_IDS) {
     const asset = ASSETS[assetId];
@@ -123,98 +140,69 @@ export async function checkAlerts() {
       );
 
       const prevState = state[assetId] ?? {};
+      const price = formatPrice(current.price, homeCurrency);
 
-      // Signal state change
-      if (
-        settings.signalChangeEnabled &&
-        prevState.overall &&
-        prevState.overall !== overall.action
-      ) {
-        const actionClass = overall.action.includes('BUY')
-          ? 'buy'
-          : overall.action.includes('SELL')
-            ? 'sell'
-            : 'neutral';
+      // Signal zone: only STRONG BUY / CONSIDER SELLING, held 3 days, 30-day cooldown
+      const signal = evaluateSignal(prevState.signal, overall.action, now);
+      if (settings.signalChangeEnabled && signal.fire) {
         alerts.push({
           asset: asset.symbol,
           type: 'signal',
-          actionClass,
-          title: `${asset.symbol}: Signal changed to ${overall.action}`,
-          detail: `${overall.description} (was: ${prevState.overall})`,
-          price: formatPrice(current.price, homeCurrency),
+          actionClass: signal.fire,
+          title: `${asset.symbol}: ${overall.action}`,
+          detail: `${overall.description} Held for 3+ days. Price: ${price}`,
+          price,
         });
       }
 
-      // 24h price change
-      if (
-        settings.priceChangeThreshold > 0 &&
-        Math.abs(current.priceChange24h) >= settings.priceChangeThreshold
-      ) {
-        const alreadySent = prevState.lastPriceAlertChange24h === current.priceChange24h.toFixed(1);
-        if (!alreadySent) {
-          const direction = current.priceChange24h > 0 ? 'up' : 'down';
-          alerts.push({
-            asset: asset.symbol,
-            type: 'price',
-            actionClass: direction === 'up' ? 'sell' : 'buy',
-            title: `${asset.symbol}: ${direction === 'up' ? '+' : ''}${current.priceChange24h.toFixed(1)}% in 24h`,
-            detail: `Current price: ${formatPrice(current.price, homeCurrency)}`,
-            price: formatPrice(current.price, homeCurrency),
-          });
-          state[assetId] = {
-            ...state[assetId],
-            lastPriceAlertChange24h: current.priceChange24h.toFixed(1),
-          };
-        }
+      // Large move over 30 days, 30-day cooldown per direction
+      const pct = priceMovePercent(dailyPrices, current.price, now);
+      const move = evaluatePriceMove(prevState.priceMove, pct, settings.priceMoveThreshold, now);
+      if (move.fire) {
+        const sign = pct > 0 ? '+' : '';
+        alerts.push({
+          asset: asset.symbol,
+          type: 'price',
+          actionClass: move.fire === 'up' ? 'sell' : 'buy',
+          title: `${asset.symbol}: ${sign}${pct.toFixed(0)}% in 30 days`,
+          detail: `Current price: ${price}`,
+          price,
+        });
       }
 
-      // Target sell price approach
-      if (settings.targetApproachEnabled) {
-        const assetTxs = (portfolio.transactions ?? []).filter(
-          (t) => (t.asset ?? 'bitcoin') === assetId && t.type === 'buy',
-        );
-        if (assetTxs.length > 0) {
-          const taxSettings = portfolio.settings?.taxSettings ?? {
-            marginalTaxRate: 0.325,
-            exchangeFeeRate: 0.006,
-          };
-          const avgCost = assetTxs.reduce((sum, t) => sum + (t.price ?? 0), 0) / assetTxs.length;
-          if (avgCost > 0) {
-            const targetMultiples = [1.5, 2, 2.5];
-            for (const mult of targetMultiples) {
-              const rawTarget = avgCost * mult;
-              const gain = rawTarget - avgCost;
-              const fee = rawTarget * taxSettings.exchangeFeeRate;
-              const taxableGain = gain * 0.5; // assume >12 month hold (CGT discount)
-              const tax = taxableGain * taxSettings.marginalTaxRate;
-              const netTarget = rawTarget - fee - tax;
-              const pctFromTarget = ((current.price - rawTarget) / rawTarget) * 100;
-
-              const stateKey = `target_${mult}x`;
-              if (pctFromTarget >= -settings.targetApproachPercent && pctFromTarget <= 5) {
-                if (!prevState[stateKey]) {
-                  alerts.push({
-                    asset: asset.symbol,
-                    type: 'target',
-                    actionClass: 'sell',
-                    title: `${asset.symbol}: Approaching ${mult}x target`,
-                    detail: `Price ${formatPrice(current.price, homeCurrency)} is within ${settings.targetApproachPercent}% of ${mult}x target (${formatPrice(rawTarget, homeCurrency)}). Net after fees+tax: ${formatPrice(netTarget, homeCurrency)}`,
-                    price: formatPrice(current.price, homeCurrency),
-                  });
-                  state[assetId] = { ...state[assetId], [stateKey]: true };
-                }
-              } else if (prevState[stateKey]) {
-                state[assetId] = { ...state[assetId], [stateKey]: false };
-              }
-            }
-          }
+      // Target sell prices (2x / 2.5x of FIFO avg cost), once per cross
+      const assetTxs = (portfolio.transactions ?? []).filter(
+        (t) => (t.asset ?? 'bitcoin') === assetId,
+      );
+      const avgCost = fifoAvgCost(computeFIFO(assetTxs).openLots);
+      const targets = evaluateTargets(prevState.targets, avgCost, current.price);
+      if (settings.targetCrossEnabled) {
+        const taxSettings = portfolio.settings?.taxSettings ?? {
+          marginalTaxRate: 0.325,
+          exchangeFeeRate: 0.006,
+        };
+        for (const mult of targets.fired) {
+          const rawTarget = avgCost * mult;
+          const fee = rawTarget * taxSettings.exchangeFeeRate;
+          const tax = (rawTarget - avgCost) * 0.5 * taxSettings.marginalTaxRate; // >12 month hold
+          const netTarget = rawTarget - fee - tax;
+          alerts.push({
+            asset: asset.symbol,
+            type: 'target',
+            actionClass: 'sell',
+            title: `${asset.symbol}: Reached ${mult}x target`,
+            detail: `Price ${price} is at or above ${mult}x your average cost (${formatPrice(rawTarget, homeCurrency)}). Net per unit after fees and long-term CGT: ${formatPrice(netTarget, homeCurrency)}`,
+            price,
+          });
         }
       }
 
       state[assetId] = {
-        ...state[assetId],
         overall: overall.action,
         lastPrice: current.price,
+        signal: signal.state,
+        priceMove: move.state,
+        targets: targets.state,
       };
     } catch (err) {
       console.error(`Alert check failed for ${assetId}:`, err.message); // nosemgrep: unsafe-formatstring
@@ -343,7 +331,7 @@ export async function sendTestEmail(settings) {
         asset: 'ETH',
         type: 'price',
         actionClass: 'sell',
-        title: 'ETH: +12.5% in 24h',
+        title: 'ETH: +45% in 30 days',
         detail: 'Current price: $3,200.00',
         price: '$3,200.00',
       },

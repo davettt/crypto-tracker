@@ -1,11 +1,9 @@
 import { Router } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { DATA_DIR } from '../config.js';
 import { isValidAsset } from '../assets.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const NOTES_PATH = path.join(__dirname, '../../local_data/asset_notes.json');
+const NOTES_PATH = path.join(DATA_DIR, 'asset_notes.json');
 
 async function loadNotes() {
   try {

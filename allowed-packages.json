@@ -187,5 +187,30 @@
     "weeklyDownloads": 3000000,
     "versions": 50,
     "verified": "2026-07-19"
-  }
+  },
+  "helmet": {
+    "repo": "git://github.com/helmetjs/helmet",
+    "publisher": "adam_baldwin",
+    "weeklyDownloads": 16365655,
+    "versions": 135,
+    "verified": "2026-10-15",
+    "lastPublished": "2026-07-12",
+    "repoArchived": false,
+    "repoMatch": "unknown",
+    "provenance": false,
+    "maintenance": "maintained",
+    "successor": null,
+    "socket": {
+      "checked": "2026-10-15",
+      "status": "scored",
+      "supplyChain": 100,
+      "vulnerability": 100,
+      "deepSupplyChain": 100,
+      "deepVulnerability": 100,
+      "alerts": [],
+      "flagged": false
+    },
+    "notes": ""
+  },
+  "_installScripts": {}
 }

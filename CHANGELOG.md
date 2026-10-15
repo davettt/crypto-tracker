@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.6.0] - 2026-10-16
+
+### Added
+
+- Isolated test harness (`tests/harness.js`) with smoke and integration tests on a temp data dir and separate port, plus unit tests for alert rules (`npm test`)
+- `helmet` dependency for HTTP security headers
+- `.nvmrc` and `secrets:staged` script
+
+### Changed
+
+- Email alerts now fire only for large, actionable conditions instead of week-to-week swings:
+  - Signal alerts only when an asset enters STRONG BUY or CONSIDER SELLING and holds it for 3 days; the same zone won't alert again for 30 days. BUY/ACCUMULATE/CAUTION/HOLD changes no longer email.
+  - The 24h price change alert is replaced by a 30-day move alert (default ±40%, configurable; once per direction per 30 days).
+  - Target alerts fire when price reaches 2x or 2.5x of average cost (1.5x dropped), once per target, re-arming after a 20% fall back below.
+  - Existing alert settings are migrated automatically.
+- Server now binds to 127.0.0.1 only, adds helmet security headers, exact-origin CORS, Host header validation and cross-site write refusal.
+- Data directory configurable via `DATA_DIR` (used by tests).
+- Synced CI workflow, pre-commit hook and AGENTS.md with the shared build-policy templates; secrets scan uses `--redact`; review includes untracked files.
+- Refreshed 17 dependencies within their allowed ranges.
+
+### Fixed
+
+- Target sell alerts used a simple average of buy prices instead of the FIFO average cost shown in the app.
+- Target alerts re-sent whenever price wobbled around the target.
+- Resolved high/critical npm audit advisories (concurrently, proxy-addr, shell-quote, brace-expansion, browserslist).
+
 ## [2.5.1] - 2026-07-25
 
 ### Added

@@ -1,10 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { DATA_DIR } from './config.js';
 import { ASSET_IDS } from './assets.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = path.join(__dirname, '../local_data');
+const CACHE_DIR = DATA_DIR;
 
 // CoinGecko free API — no key needed, 10-30 calls/min
 const BASE = 'https://api.coingecko.com/api/v3';

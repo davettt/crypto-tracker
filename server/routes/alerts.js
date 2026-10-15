@@ -34,10 +34,9 @@ router.put('/settings', async (req, res) => {
       email,
       resendApiKey,
       fromEmail,
-      priceChangeThreshold,
+      priceMoveThreshold,
       signalChangeEnabled,
-      targetApproachEnabled,
-      targetApproachPercent,
+      targetCrossEnabled,
     } = req.body;
 
     if (email != null) {
@@ -59,23 +58,15 @@ router.put('/settings', async (req, res) => {
       current.fromEmail = fromEmail;
     }
     if (enabled != null) current.enabled = Boolean(enabled);
-    if (priceChangeThreshold != null) {
-      const val = Number(priceChangeThreshold);
+    if (priceMoveThreshold != null) {
+      const val = Number(priceMoveThreshold);
       if (!isFinite(val) || val < 0 || val > 100) {
-        return res.status(400).json({ error: 'priceChangeThreshold must be 0-100' });
+        return res.status(400).json({ error: 'priceMoveThreshold must be 0-100' });
       }
-      current.priceChangeThreshold = val;
+      current.priceMoveThreshold = val;
     }
     if (signalChangeEnabled != null) current.signalChangeEnabled = Boolean(signalChangeEnabled);
-    if (targetApproachEnabled != null)
-      current.targetApproachEnabled = Boolean(targetApproachEnabled);
-    if (targetApproachPercent != null) {
-      const val = Number(targetApproachPercent);
-      if (!isFinite(val) || val < 1 || val > 50) {
-        return res.status(400).json({ error: 'targetApproachPercent must be 1-50' });
-      }
-      current.targetApproachPercent = val;
-    }
+    if (targetCrossEnabled != null) current.targetCrossEnabled = Boolean(targetCrossEnabled);
 
     await saveAlertSettings(current);
     res.json({

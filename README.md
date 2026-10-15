@@ -20,7 +20,11 @@ Multi-asset crypto tracker (BTC, ETH, SOL, RENDER, TRX, TAO, LINK, NEAR) with bu
 - **Target sell price calculator** — shows 1.5x/2x/2.5x multiples of avg cost with separate tables for long-term (CGT discount) and short-term (full rate) holdings. Each table shows sell price, net per unit after fees+tax, profit per unit, total profit for that holding tier, and net gain %
 - CoinSpot CSV import with duplicate detection
 - Actual crypto amount override on transaction forms — back-derives the effective price so FIFO cost basis matches exchange statements exactly (handles Revolut-style spread)
-- **Email alerts** via Resend — signal changes, large price moves, and target sell price proximity (1.5x/2x/2.5x) triggers sent to your inbox every 4 hours
+- **Email alerts** via Resend — deliberately rare, checked every 4 hours. Sent only when:
+  - Signal enters STRONG BUY or CONSIDER SELLING and holds for 3 days (30-day cooldown per zone)
+  - Price moves more than 40% (configurable) over 30 days
+  - Price reaches 2x or 2.5x of FIFO average cost (once per target)
+  - Per-asset price level alerts are hit
 - Refresh button bypasses the 4-hour cache for on-demand fresh prices; normal loads still use cache to respect rate limits
 - Home currency setting with 8 supported currencies (USD, AUD, GBP, EUR, JPY, NZD, SGD, CAD)
 - Display currency toggle to view market data in any supported currency
@@ -57,7 +61,7 @@ No API keys required for core functionality. CoinGecko free tier and alternative
 
 | Variable   | Default | Description                                  |
 | ---------- | ------- | -------------------------------------------- |
-| `PORT`     | `3007`  | Server port                                  |
+| `PORT`     | `3007`  | Server port (binds to 127.0.0.1 only)        |
 | `NODE_ENV` | —       | Set to `production` to serve static frontend |
 
 ## Development
@@ -65,6 +69,14 @@ No API keys required for core functionality. CoinGecko free tier and alternative
 ```bash
 npm run dev   # Vite dev server + Express via concurrently
 ```
+
+## Testing
+
+```bash
+npm test      # unit tests, then smoke and integration tests
+```
+
+Smoke and integration tests run against an isolated server on port 3097 with a temporary data dir, so they never touch `local_data/`.
 
 ## Production
 

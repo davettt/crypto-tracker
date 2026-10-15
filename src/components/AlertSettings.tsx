@@ -5,10 +5,9 @@ interface AlertConfig {
   email: string;
   resendApiKey: string;
   fromEmail: string;
-  priceChangeThreshold: number;
+  priceMoveThreshold: number;
   signalChangeEnabled: boolean;
-  targetApproachEnabled: boolean;
-  targetApproachPercent: number;
+  targetCrossEnabled: boolean;
 }
 
 export default function AlertSettings() {
@@ -200,66 +199,61 @@ export default function AlertSettings() {
         <div>
           <h5 className="text-xs font-semibold text-gray-500">Alert Triggers</h5>
 
-          <label className="mt-2 flex items-center gap-2">
+          <p className="mt-1 text-xs text-gray-400">
+            Alerts only fire for large moves worth acting on, not week-to-week swings.
+          </p>
+
+          <label className="mt-2 flex items-start gap-2">
             <input
               type="checkbox"
               checked={config.signalChangeEnabled}
               onChange={(e) => update({ signalChangeEnabled: e.target.checked })}
-              className="rounded"
+              className="mt-1 rounded"
             />
             <span className="text-sm text-gray-700">
-              Signal state changes (e.g. HOLD → STRONG BUY)
+              Signal enters STRONG BUY or CONSIDER SELLING
+              <span className="block text-xs text-gray-400">
+                Must hold for 3 days. The same zone won&apos;t alert again for 30 days.
+              </span>
             </span>
           </label>
 
           <div className="mt-2">
             <label className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">24h price change exceeds</span>
+              <span className="text-sm text-gray-700">Price moves more than</span>
               <input
                 type="number"
-                value={config.priceChangeThreshold}
+                value={config.priceMoveThreshold}
                 onChange={(e) =>
                   update({
-                    priceChangeThreshold: parseFloat(e.target.value) || 0,
+                    priceMoveThreshold: parseFloat(e.target.value) || 0,
                   })
                 }
                 min="0"
                 max="100"
-                step="1"
+                step="5"
                 className="w-16 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
               />
-              <span className="text-sm text-gray-700">%</span>
+              <span className="text-sm text-gray-700">% over 30 days</span>
             </label>
-            <p className="mt-0.5 ml-0 text-xs text-gray-400">
-              Set to 0 to disable price change alerts
+            <p className="mt-0.5 text-xs text-gray-400">
+              Set to 0 to disable. Once per direction per 30 days.
             </p>
           </div>
 
-          <label className="mt-2 flex items-center gap-2">
+          <label className="mt-2 flex items-start gap-2">
             <input
               type="checkbox"
-              checked={config.targetApproachEnabled}
-              onChange={(e) => update({ targetApproachEnabled: e.target.checked })}
-              className="rounded"
+              checked={config.targetCrossEnabled}
+              onChange={(e) => update({ targetCrossEnabled: e.target.checked })}
+              className="mt-1 rounded"
             />
             <span className="text-sm text-gray-700">
-              Price approaching target sell price (within
+              Price reaches 2x or 2.5x your average cost
+              <span className="block text-xs text-gray-400">
+                Once per target. Re-arms if price falls 20% back below it.
+              </span>
             </span>
-            <input
-              type="number"
-              value={config.targetApproachPercent}
-              onChange={(e) =>
-                update({
-                  targetApproachPercent: parseFloat(e.target.value) || 5,
-                })
-              }
-              min="1"
-              max="50"
-              step="1"
-              className="w-14 rounded border border-gray-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
-              disabled={!config.targetApproachEnabled}
-            />
-            <span className="text-sm text-gray-700">%)</span>
           </label>
         </div>
 

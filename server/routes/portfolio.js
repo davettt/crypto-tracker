@@ -1,11 +1,9 @@
 import { Router } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { DATA_DIR } from '../config.js';
 import { isValidAsset, DEFAULT_ASSET } from '../assets.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = path.join(__dirname, '../../local_data/portfolio.json');
+const DATA_FILE = path.join(DATA_DIR, 'portfolio.json');
 
 const SUPPORTED_CURRENCIES = ['USD', 'AUD', 'GBP', 'EUR', 'JPY', 'NZD', 'SGD', 'CAD'];
 
