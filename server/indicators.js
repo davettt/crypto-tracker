@@ -10,11 +10,12 @@
 export function toWeekly(dailyPrices) {
   const weeks = new Map();
   for (const d of dailyPrices) {
+    // Dates are 'YYYY-MM-DD' strings, parsed as UTC midnight. Compare against UTC midnight on
+    // 1 Jan so the day count is an exact integer, independent of the machine's timezone or DST.
     const dt = new Date(d.date);
-    // ISO week: get the Thursday of the week, then derive week number
-    const year = dt.getFullYear();
-    const oneJan = new Date(year, 0, 1);
-    const dayOfYear = Math.ceil((dt - oneJan) / 86400000) + 1;
+    const year = dt.getUTCFullYear();
+    const oneJan = Date.UTC(year, 0, 1);
+    const dayOfYear = Math.round((dt - oneJan) / 86400000) + 1;
     const weekNum = Math.ceil(dayOfYear / 7);
     const key = `${year}-W${String(weekNum).padStart(2, '0')}`;
     weeks.set(key, d); // last entry for each week wins

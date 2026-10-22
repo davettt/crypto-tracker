@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- ESLint now ignores `.claude/**` so agent worktrees are not linted
+- `.husky/pre-commit` synced to the shared build-policy template (staged secret scan when build-policy is absent)
+- `.nvmrc` bumped Node 24.20.0 → 24.22.1
+
+### Fixed
+
+- Weekly price grouping (used by weekly RSI and signals) now counts days in UTC, so week boundaries no longer depend on the local timezone; weekly RSI values may shift slightly
+- Added unit tests for weekly grouping in `tests/indicators.test.js` (run via `test:unit`)
+
 ## [2.6.0] - 2026-10-16
 
 ### Added
